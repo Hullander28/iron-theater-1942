@@ -1,4 +1,4 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Iron Theater 1942</title><link rel="manifest" href="manifest.json"><meta name="theme-color" content="#14202c"><link rel="apple-touch-icon" href="icon-192.png">
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;height:100%;background:#14202c;color:#f1e8d4;font-family:system-ui,sans-serif;user-select:none;overflow:hidden}
@@ -17,19 +17,53 @@ button:disabled{opacity:.35}.sm{flex:none;min-width:0;padding:5px 9px;font-size:
 #menu h1{color:#e6b43c;margin:0}#menu button{width:240px;flex:none}select,input{font-size:16px;padding:8px;border-radius:8px;width:240px}
 #cut{position:fixed;inset:0;z-index:8;background:#000c;display:none;flex-direction:column;align-items:center;justify-content:center}
 #cut svg{width:100%;max-width:520px}#log{font-size:12px;opacity:.7;margin-top:4px}
+
+html,body{touch-action:manipulation}#wrap{touch-action:none;overscroll-behavior:contain}#map{margin:0 auto;will-change:transform}
+#top button.sm{padding:6px 8px}
+#panel.battle{max-height:64%}
+.board{background:linear-gradient(#3a2c1a,#2a2013);border:2px solid #8a6a32;border-radius:10px;padding:6px;font-size:13px;color:#f3e6c4}
+.bhead{text-align:center;font-size:15px;margin-bottom:4px;font-family:Georgia,serif}
+.bside{margin:4px 0;border-radius:8px;overflow:hidden;background:#e9dcb6;color:#2a1d0c}
+.bt{font:700 12px Georgia,serif;letter-spacing:1px;padding:3px 8px;color:#fff;text-shadow:0 1px 2px #000}
+.bcols{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;padding:3px}
+.bcol{background:#f5ecd3;border:1px solid #b39a63;border-radius:5px;min-height:62px;display:flex;flex-direction:column;align-items:center;padding:2px}
+.bv{font:800 16px Georgia,serif;color:#7a1a0c;border-bottom:1px solid #b39a63;width:100%;text-align:center}
+.bu{display:flex;flex-wrap:wrap;justify-content:center;gap:1px;min-height:30px}.bpc{display:inline-flex;align-items:flex-end}.bpc b{font-size:11px;margin-left:-4px}.be{opacity:.4}
+.bd{display:flex;flex-wrap:wrap;gap:3px;justify-content:center;padding:2px;perspective:300px}
+.die{position:relative;display:inline-block;width:20px;height:20px;border-radius:4px;background:linear-gradient(135deg,#fff 0%,var(--dc) 35%,var(--dc) 70%,#0005 100%);box-shadow:1px 2px 2px #0007,inset -2px -2px 3px #0004,inset 2px 2px 2px #fff6;transform-style:preserve-3d}
+.die i{position:absolute;width:4px;height:4px;margin:-2px 0 0 -2px;border-radius:50%;background:#111}
+.die[style*="#f2efe6"] i{background:#222}.die[style*="#c0392b"] i{background:#fff}
+.die.hit{outline:2px solid #1fbf4a;outline-offset:1px}.die.miss{opacity:.55}
+.die.roll{animation:tumble .75s cubic-bezier(.2,.7,.3,1.2) both}
+@keyframes tumble{0%{transform:translateY(-26px) rotateX(540deg) rotateY(320deg) scale(.6);opacity:0}55%{transform:translateY(3px) rotateX(40deg) rotateY(-20deg)}75%{transform:translateY(-4px) rotateX(-10deg)}100%{transform:none;opacity:1}}
+.bz{font-size:11px;padding:0 6px 3px;opacity:.75}.bres{text-align:center;font-size:12px;margin-top:3px}
+.bcas{background:#5a1d0c;border-radius:8px;padding:6px;margin-top:4px}.cpick{display:inline-flex;align-items:center;gap:3px;margin:2px 6px 2px 0;background:#0003;border-radius:6px;padding:2px 4px}.cpick .sm{padding:3px 8px}
+.bchk{display:block;font-size:12px;margin-top:4px}.bchk input{width:auto}
+#dyn .drop{animation:drop .55s cubic-bezier(.3,1.6,.5,1) both;transform-box:fill-box;transform-origin:50% 100%}
+@keyframes drop{0%{transform:translateY(-40px) scale(1.15);opacity:0}60%{transform:translateY(2px) scale(.96,1.04);opacity:1}80%{transform:translateY(-3px)}100%{transform:none}}
+#dyn image{filter:drop-shadow(0 1.5px 1px #0008)}
+#tut{display:none;position:fixed;left:8px;right:8px;top:46px;z-index:9;background:#fff8e2;color:#2a1d0c;border:2px solid #c8902e;border-radius:12px;padding:8px 10px;font-size:14px;box-shadow:0 6px 18px #0008}
+.tstep{font:700 11px system-ui;color:#8a5a12;text-transform:uppercase;letter-spacing:1px}
+.tut-hl{box-shadow:0 0 0 3px #fff,0 0 0 6px #ffb300!important;animation:tpulse 1s infinite alternate}@keyframes tpulse{to{box-shadow:0 0 0 3px #fff,0 0 0 9px #ffb30088}}
+.tutpulse{animation:tp2 1s infinite alternate}@keyframes tp2{to{fill-opacity:.05;stroke-opacity:.4}}
+#recap{display:none;position:fixed;inset:0;z-index:9;background:#000a;align-items:center;justify-content:center;padding:14px}
+.rbox{background:#efe3c2;color:#2a1d0c;border-radius:12px;max-height:85%;overflow:auto;padding:10px 12px;width:100%;max-width:520px;font-size:13px;border:3px double #7a5a2a;font-family:Georgia,serif}
+.rbox h3{margin:2px 0 6px}.rpow{margin:6px 0}.rp{display:inline-block;color:#fff;border-radius:6px;padding:1px 8px;font-weight:700;text-shadow:0 1px 1px #000;margin-bottom:2px}.rbox button{width:100%;margin-top:6px}
+#sndpop{display:none;position:fixed;right:8px;top:46px;z-index:9;background:#1b2a38;border:1px solid #c8902e;border-radius:10px;padding:10px;flex-direction:column;gap:8px;font-size:14px}
+@media (orientation:landscape) and (max-height:540px){#wrap{margin-right:40%}#panel{position:fixed;right:0;top:40px;bottom:0;width:40%;max-height:none!important}#tut{right:41%}}
 </style></head><body><div id="app">
-<div id="top"><span id="who">Iron Theater 1942</span><button class="sm" id="zo">−</button><button class="sm" id="zi">+</button><button class="sm" id="fxt">🎬</button><button class="sm" id="pz" style="display:none">⏸</button><button class="sm" id="mnu">☰</button></div>
+<div id="top"><span id="who">Iron Theater 1942</span><button class="sm" id="zo" title="Zoom out">−</button><button class="sm" id="zi" title="Zoom in">+</button><button class="sm" id="fit" title="Fit whole map">⤢</button><button class="sm" id="snd" title="Sound">🔊</button><button class="sm" id="fxt">🎬</button><button class="sm" id="pz" style="display:none">⏸</button><button class="sm" id="mnu">☰</button></div>
 <div id="wrap"><svg id="map" viewBox="0 0 2000 887"></svg></div>
 <div id="panel"><div id="msg"></div><div id="list"></div><div id="bar"></div><div id="log"></div></div></div>
 <div id="pause" style="position:fixed;inset:0;z-index:7;background:#0b1118ee;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:20px"><h2 style="color:#e6b43c">⏸ Paused by host</h2><div id="pinfo"></div><div id="seatpick"></div><button id="unpause" style="flex:none;width:220px;display:none">Resume play</button></div><div id="cut"><svg id="cutsvg" viewBox="0 0 400 260"></svg><button id="skip" style="flex:none;width:160px;margin-top:10px">Skip ⏭</button></div>
-<div id="menu"><h1>⚙ Iron Theater 1942</h1><p style="text-align:center;margin:0">Five powers. Two coalitions. One world war.</p>
+<div id="tut"></div><div id="recap"></div><div id="sndpop"></div><div id="menu"><h1>⚙ Iron Theater 1942</h1><p style="text-align:center;margin:0">Five powers. Two coalitions. One world war.</p>
 <label>Quick setup</label><select id="mode"><option value="ai">Me vs AI (pick my power below)</option><option value="hot">Pass &amp; play (all human)</option><option value="watch">Watch AI vs AI</option></select>
 <label>My power</label><select id="pw"></select>
 <b>Who controls each power</b><div id="pcs" style="width:260px"></div>
 <label>Turn limit (most victory cities wins, tie → income)</label><select id="limit"><option value="0">No limit</option><option value="20">20 rounds</option><option value="30">30 rounds</option><option value="40" selected>40 rounds</option><option value="60">60 rounds</option></select>
 <label style="width:240px"><input type="checkbox" id="bonus" style="width:auto"> Hard AI +15% IPC (Brutal always +30%)</label>
-<button id="new">New Game</button><button id="cont">Continue Saved</button>
+<button id="new">New Game</button><button id="tutbtn">🎓 Guided first game</button><button id="cont">Continue Saved</button>
 <hr style="width:240px"><b>Online – each on own phone</b><small style="width:240px;text-align:center">In the lobby every player taps the powers they want (any side, several allowed). Open powers use the AI settings above.</small><input id="nm" placeholder="Your name">
 <button id="host">Host online room</button><input id="code" placeholder="Room code" style="text-transform:uppercase"><button id="join">Join room</button>
 <button id="resume">Resume saved online game</button><hr style="width:240px"><button id="exp">Export save (code + file)</button><button id="imp">Import save</button><input type="file" id="impf" accept=".itsave,.txt" style="display:none"><textarea id="codebox" style="width:240px;height:70px;display:none;font-size:11px"></textarea><div id="lobby" style="text-align:center"></div><button id="start" style="display:none">Start online game</button></div>
-<script src="mapdata.js"></script><script src="game.js"></script></body></html>
+<script src="mapdata.js"></script><script src="game.js"></script><script src="polish.js"></script></body></html>
