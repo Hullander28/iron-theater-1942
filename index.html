@@ -4,10 +4,10 @@
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;height:100%;background:#14202c;color:#f1e8d4;font-family:system-ui,sans-serif;user-select:none;overflow:hidden}
 #app{display:flex;flex-direction:column;height:100%}
 #top{padding:6px 8px;display:flex;gap:6px;align-items:center;font-size:14px;background:#0c141c}#who{font-weight:bold;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#wrap{flex:1 1 50%;overflow:auto;position:relative;background:#235078;-webkit-overflow-scrolling:touch}
-#map{display:block;width:1800px;height:auto}
+#wrap{flex:1 1 55%;overflow:auto;position:relative;background:#9dbccb;touch-action:pan-x pan-y;-webkit-overflow-scrolling:touch}
+#map{display:block;width:2400px;height:auto}#map text.tl{font-family:Georgia,serif;font-weight:700;fill:#2b1d0c;text-anchor:middle;stroke:#f3ead2;stroke-width:1.6px;paint-order:stroke}#map text.ti{font-family:Georgia,serif;fill:#5a1d0c;text-anchor:middle;stroke:#f3ead2;stroke-width:1.4px;paint-order:stroke}#map text.szn{font:700 7px Georgia,serif;fill:#23485a;text-anchor:middle}#map text.nl{font:italic 6px Georgia,serif;fill:#5b4c30;text-anchor:middle}
 .loc{cursor:pointer}.sel>.ring{stroke:#fff!important;stroke-width:5!important}.dst>.ring{stroke:#ffde59!important;stroke-width:5!important}.bat>.ring{stroke:#ff3b30!important;stroke-width:5!important;stroke-dasharray:6 4}
-#panel{flex:0 0 auto;max-height:46%;overflow:auto;padding:6px 8px;background:#1b2a38;border-top:2px solid #0008}
+#panel{flex:0 0 auto;max-height:38%;overflow:auto;padding:6px 8px;background:#1b2a38;border-top:2px solid #0008}
 #msg{font-size:14px;min-height:20px;margin-bottom:4px}
 .row{display:flex;align-items:center;gap:6px;margin:3px 0;font-size:14px}.row svg{width:34px;height:34px;flex:none}.row .nm{flex:1}
 .st button{min-width:38px;padding:6px 0;flex:none}
@@ -19,7 +19,7 @@ button:disabled{opacity:.35}.sm{flex:none;min-width:0;padding:5px 9px;font-size:
 #cut svg{width:100%;max-width:520px}#log{font-size:12px;opacity:.7;margin-top:4px}
 </style></head><body><div id="app">
 <div id="top"><span id="who">Iron Theater 1942</span><button class="sm" id="zo">−</button><button class="sm" id="zi">+</button><button class="sm" id="fxt">🎬</button><button class="sm" id="pz" style="display:none">⏸</button><button class="sm" id="mnu">☰</button></div>
-<div id="wrap"><svg id="map" viewBox="0 0 1100 560"></svg></div>
+<div id="wrap"><svg id="map" viewBox="0 0 2000 887"></svg></div>
 <div id="panel"><div id="msg"></div><div id="list"></div><div id="bar"></div><div id="log"></div></div></div>
 <div id="pause" style="position:fixed;inset:0;z-index:7;background:#0b1118ee;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:20px"><h2 style="color:#e6b43c">⏸ Paused by host</h2><div id="pinfo"></div><div id="seatpick"></div><button id="unpause" style="flex:none;width:220px;display:none">Resume play</button></div><div id="cut"><svg id="cutsvg" viewBox="0 0 400 260"></svg><button id="skip" style="flex:none;width:160px;margin-top:10px">Skip ⏭</button></div>
 <div id="menu"><h1>⚙ Iron Theater 1942</h1><p style="text-align:center;margin:0">Five powers. Two coalitions. One world war.</p>
@@ -32,4 +32,4 @@ button:disabled{opacity:.35}.sm{flex:none;min-width:0;padding:5px 9px;font-size:
 <hr style="width:240px"><b>Online – each on own phone</b><small style="width:240px;text-align:center">In the lobby every player taps the powers they want (any side, several allowed). Open powers use the AI settings above.</small><input id="nm" placeholder="Your name">
 <button id="host">Host online room</button><input id="code" placeholder="Room code" style="text-transform:uppercase"><button id="join">Join room</button>
 <button id="resume">Resume saved online game</button><hr style="width:240px"><button id="exp">Export save (code + file)</button><button id="imp">Import save</button><input type="file" id="impf" accept=".itsave,.txt" style="display:none"><textarea id="codebox" style="width:240px;height:70px;display:none;font-size:11px"></textarea><div id="lobby" style="text-align:center"></div><button id="start" style="display:none">Start online game</button></div>
-<script src="game.js"></script></body></html>
+<script src="mapdata.js"></script><script src="game.js"></script></body></html>

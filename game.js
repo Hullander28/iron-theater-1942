@@ -1,32 +1,25 @@
 'use strict';
 // ===== data =====
-const P=[{n:'Soviet Union',c:'#b8312f',cap:15},{n:'Germany',c:'#6f7680',cap:8},{n:'United Kingdom',c:'#c7a565',cap:6},{n:'Japan',c:'#e58a2a',cap:26},{n:'United States',c:'#4f7d3a',cap:1}];
+const P=[{n:'Soviet Union',c:'#b8312f',capN:'Russia'},{n:'Germany',c:'#6f7680',capN:'Germany'},{n:'United Kingdom',c:'#c7a565',capN:'United Kingdom'},{n:'Japan',c:'#e58a2a',capN:'Japan'},{n:'United States',c:'#4f7d3a',capN:'Eastern United States'}];
 const TEAM=[0,1,0,1,0],TN=['Allies','Axis'];
-// name, sea, owner, ipc, ic, vc, x, y
-const LOC=[["Western US",0,4,10,1,"San Francisco",120,250],["Eastern US",0,4,12,1,"Washington",215,240],["Canada",0,2,3,0,"",175,160],["Alaska",0,4,2,0,"",75,120],["Mexico",0,4,2,0,"",150,330],["Brazil",0,4,3,0,"",275,440],
-["United Kingdom",0,2,8,1,"London",395,165],["France",0,1,6,0,"Paris",420,250],["Germany",0,1,10,1,"Berlin",490,215],["Italy",0,1,3,1,"Rome",485,300],["Poland",0,1,3,0,"Warsaw",545,180],["Balkans",0,1,3,0,"",550,265],["Norway",0,1,3,0,"",480,110],
-["Karelia",0,0,2,0,"Leningrad",575,95],["Ukraine",0,0,2,0,"",610,220],["Russia",0,0,8,1,"Moscow",650,140],["Caucasus",0,0,4,1,"Stalingrad",665,255],["Kazakh",0,0,2,0,"",720,215],["Siberia",0,0,1,0,"",740,105],
-["Libya",0,1,1,0,"",475,370],["Egypt",0,2,2,0,"Cairo",560,365],["Persia",0,2,2,0,"",640,330],["India",0,2,3,1,"Calcutta",715,350],["Africa",0,2,3,0,"",520,470],["China",0,4,2,0,"Chongqing",790,250],["Manchuria",0,3,3,0,"Shanghai",825,165],
-["Japan",0,3,8,1,"Tokyo",880,205],["Indochina",0,3,2,0,"",790,345],["East Indies",0,3,4,0,"",790,440],["Philippines",0,3,3,0,"Manila",865,330],["Australia",0,2,2,0,"Sydney",845,510],["Hawaii",0,4,1,0,"Honolulu",50,400],
-["East Pacific",1],["Central Pacific",1],["Caribbean",1],["West Atlantic",1],["North Atlantic",1],["South Atlantic",1],["North Sea",1],["Bay of Biscay",1],["Mediterranean",1],["Baltic Sea",1],["Arctic Sea",1],["W. Indian Ocean",1],["E. Indian Ocean",1],["South China Sea",1],["Sea of Japan",1],["West Pacific",1],["Coral Sea",1]]
- .map(a=>({n:a[0],sea:!!a[1],own:a[2]??-1,v:a[3]||0,ic:!!a[4],vc:a[5]||'',x:a[6],y:a[7]}));
-[[55,260],[100,470],[215,355],[285,250],[320,105],[380,420],[450,165],[345,240],[430,330],[530,135],[530,40],[630,430],[720,470],[840,265],[860,90],[890,400],[890,470]].forEach(([x,y],i)=>{LOC[32+i].x=x;LOC[32+i].y=y});
-LOC.forEach(L=>{L.x=Math.round(L.x*1.22)});
-const EDG="0-1,0-2,0-3,0-4,1-2,1-4,2-3,4-5,7-8,7-9,8-9,8-10,8-12,9-11,10-11,10-13,10-14,11-14,12-13,13-15,14-15,14-16,15-16,15-18,15-17,16-17,16-21,17-18,17-22,17-24,18-24,18-25,19-20,19-23,20-21,20-23,21-22,22-24,22-27,24-25,24-27";
-const SEAADJ={32:[[0,3],[33,34,46,47]],33:[[31,4],[32,48,34,47]],34:[[1,4,5],[32,33,35,37]],35:[[1,2],[34,36,37,39]],36:[[2,6],[35,38,39,42]],37:[[5,23],[34,35,39,43]],38:[[6,7,8,12],[36,39,41,42]],39:[[6,7],[35,36,37,38,40]],40:[[7,9,11,19,20],[39,43]],41:[[8,10,12,13],[38]],42:[[12,13,15],[36,38]],43:[[20,21,23,22],[37,40,44]],44:[[22,27,28,30],[43,45,48]],45:[[24,25,27,28,29],[44,46,47,48]],46:[[25,26,18],[45,47,32]],47:[[26,29],[45,46,48,32,33]],48:[[30,28,29],[44,45,47,33]]};
+// Map built from Natural Earth public-domain geography (see mapdata.js). Land first, then numbered sea zones.
+const NLAND=MAP.land.length;
+const LOC=MAP.land.map(l=>({n:l.n,sea:false,own:l.own,v:l.v,ic:!!l.ic,vc:l.vc||'',x:l.x,y:l.y,d:l.d,a:l.a}))
+  .concat(MAP.sea.map(z=>({n:'Sea Zone '+z.num,num:z.num,sea:true,own:-1,v:0,ic:false,vc:'',x:z.x,y:z.y,d:z.d})));
+const IDX=n=>{const i=/^SZ\d+$/.test(n)?LOC.findIndex(L=>L.sea&&L.num===+n.slice(2)):LOC.findIndex(L=>L.n===n);if(i<0)throw new Error('no loc '+n);return i};
+P.forEach(p=>p.cap=IDX(p.capN));
 const ADJ=LOC.map(()=>new Set());const link=(a,b)=>{ADJ[a].add(b);ADJ[b].add(a)};
-EDG.split(',').forEach(s=>{const[a,b]=s.split('-').map(Number);link(a,b)});
-for(const k in SEAADJ){SEAADJ[k][0].forEach(l=>link(+k,l));SEAADJ[k][1].forEach(s=>link(+k,s))}
-const WRAP=new Set(['46-32','47-32','47-33','48-33']);
+MAP.adj.forEach(([a,b])=>link(a,b));
 const U={inf:{n:'Infantry',a:1,d:2,m:1,c:3,t:'L'},art:{n:'Artillery',a:2,d:2,m:1,c:4,t:'L'},tank:{n:'Tank',a:3,d:3,m:2,c:6,t:'L'},aa:{n:'AA Gun',a:0,d:0,m:1,c:5,t:'L'},
 ftr:{n:'Fighter',a:3,d:4,m:4,c:10,t:'A'},bmb:{n:'Bomber',a:4,d:1,m:6,c:12,t:'A'},bb:{n:'Battleship',a:4,d:4,m:2,c:20,t:'S',hp:2},cv:{n:'Carrier',a:0,d:2,m:2,c:14,t:'S'},
 tr:{n:'Transport',a:0,d:0,m:2,c:7,t:'S'},sub:{n:'Submarine',a:2,d:1,m:2,c:6,t:'S'},dd:{n:'Destroyer',a:2,d:2,m:2,c:8,t:'S'},ca:{n:'Cruiser',a:3,d:3,m:2,c:12,t:'S'},ic:{n:'Industrial Complex',a:0,d:0,m:0,c:15,t:'X'}};
 const BUY=['inf','art','tank','aa','ftr','bmb','tr','sub','dd','ca','cv','bb','ic'];
-const START={0:"15:inf*3,art,tank*2,aa,ftr;13:inf*3,art;14:inf*2,tank;16:inf*3,art;17:inf;18:inf*2;42:sub",
-1:"8:inf*6,art*2,tank*3,aa,ftr*2,bmb;7:inf*5,art,tank*2,ftr,aa;10:inf*4,art,tank*2;11:inf*3,tank;9:inf*4,art,tank;12:inf*3,ftr;19:inf*3,art,tank;41:tr,dd;40:bb,tr,dd;39:sub;38:sub",
-2:"6:inf*2,art,tank,aa,ftr*2,bmb;20:inf*2,art,tank;22:inf*3,aa,ftr;30:inf*2;23:inf;21:inf;2:inf;36:bb,tr,dd;43:ca,tr;44:cv,ftr,dd",
-3:"26:inf*5,art,tank,aa,ftr*2,bmb;25:inf*6,art*2,tank,ftr;27:inf*3,art,ftr;29:inf*3,art;28:inf*3;46:bb,tr;47:cv,ftr*2,dd,ca;45:tr,dd,sub",
-4:"1:inf*3,art,tank,aa,ftr,bmb;0:inf*2,art,ftr,aa;31:inf,ftr;3:inf;24:inf*3,ftr;5:inf;4:inf;32:cv,dd,tr;35:tr,dd;33:bb,sub"};
+const START_N={0:"Russia:inf*7,art,tank*2,aa,ftr*2;Karelia S.S.R.:inf*5,art;West Russia:inf*5,art,tank;Caucasus:inf*5,art,tank;Kazakh S.S.R.:inf;Novosibirsk:inf;Buryatia S.S.R.:inf*2;Soviet Far East:inf*2;Archangel:inf;Yakut S.S.R.:inf;SZ1:sub",
+1:"Germany:inf*6,art*2,tank*3,aa,ftr*2,bmb;Western Europe:inf*5,art,tank*2,ftr,aa;Eastern Europe:inf*3,art,tank;Belorussia:inf*2;Ukraine:inf*3,art,tank*2,ftr;Bulgaria Romania:inf*2,tank;Balkans:inf*2;Southern Europe:inf*3,art,tank;Norway:inf*3,ftr;Finland:inf*3;Libya:inf*2,art,tank;Morocco Algeria:inf;Italian East Africa:inf*2;SZ4:tr,dd;SZ12:bb,tr,dd;SZ11:ca;SZ7:sub;SZ5:sub",
+2:"United Kingdom:inf*2,art,tank,aa,ftr*2,bmb;Eastern Canada:inf;Western Canada:inf;Egypt:inf*2,art,tank;Trans-Jordan:inf;Persia:inf;India:inf*5,aa,ftr;Burma:inf;Australia:inf*2;New Zealand:inf;Union of South Africa:inf;Kwangtung:inf;SZ3:bb,tr,dd;SZ26:ca,tr;SZ28:cv,ftr,dd",
+3:"Japan:inf*5,art,tank,aa,ftr*2,bmb;Manchuria:inf*5,art*2,tank,ftr;Kiangsu:inf*3,art;French Indochina Thailand:inf*3,art,ftr;Philippine Islands:inf*2;Borneo:inf;East Indies:inf*2;Formosa:inf;Caroline Islands:inf;Solomon Islands:inf;New Guinea:inf;Malaya:inf;SZ39:bb,tr;SZ38:cv,ftr*2,dd,ca;SZ37:tr,dd,sub;SZ40:dd",
+4:"Eastern United States:inf*3,art,tank,aa,ftr,bmb;Western United States:inf*2,art,ftr,aa;Central United States:inf*2,tank;Hawaiian Islands:inf,ftr;Alaska:inf;China:inf*5,ftr;Sinkiang:inf;Mexico:inf;SZ49:cv,dd;SZ9:tr,dd;SZ50:bb,sub,tr"};
+const START={};for(const p in START_N)START[p]=START_N[p].split(';').map(seg=>{const i=seg.lastIndexOf(':');return IDX(seg.slice(0,i))+':'+seg.slice(i+1)}).join(';');
 const $=id=>document.getElementById(id);const rnd=n=>Math.floor(Math.random()*n);const d6=()=>1+rnd(6);
 let S=null,net={role:'local',me:'local',conns:[]},aiTimer=null,ui={sel:-1,pick:{},bat:-1};
 // ===== helpers =====
@@ -47,12 +40,15 @@ function startTurn(){const p=S.cur;S.phase='purchase';S.bought={};S.placed={};S.
   S.u.forEach(u=>{if(u.o===p){u.mv=U[u.k].m;u.cm=0;u.am=-1;u.ul=0}});log(`— ${P[p].n} (turn ${S.turn}) has ${S.ipc[p]} IPC.`)}
 function alive(p){return S.own.some(o=>o===p)||S.u.some(u=>u.o===p)}
 // ===== movement =====
-function bfs(u,to){const p=u.o,t=U[u.k].t,from=u.l;if(from===to)return -1;const dist=new Map([[from,0]]),q=[from];
+function bfs(u,to,wantPath){const p=u.o,t=U[u.k].t,from=u.l;if(from===to)return -1;const dist=new Map([[from,0]]),par=new Map(),q=[from];
+  const blitz=u.k==='tank'&&S.phase==='combat';
   while(q.length){const x=q.shift(),d=dist.get(x);if(d>=u.mv)continue;for(const y of ADJ[x]){if(dist.has(y))continue;const L=LOC[y];
-    if(t==='L'&&L.sea)continue;if(t==='S'&&!L.sea)continue;if(y===to)return d+1;let pass=true;
-    if(t==='L')pass=!enemyOf(S.own[y],p)&&!enemyUnits(y,p).length;
+    if(t==='L'&&L.sea)continue;if(t==='S'&&!L.sea)continue;
+    if(y===to){if(!wantPath)return d+1;const path=[];let z=x;while(z!==from){path.unshift(z);z=par.get(z)}return path}
+    let pass=true;
+    if(t==='L')pass=!enemyUnits(y,p).length&&(!enemyOf(S.own[y],p)||blitz);
     if(t==='S')pass=!enemyUnits(y,p).some(e=>u.k==='sub'?e.k==='dd':!['sub','tr'].includes(e.k));
-    if(pass){dist.set(y,d+1);q.push(y)}}}return -1}
+    if(pass){dist.set(y,d+1);par.set(y,x);q.push(y)}}}return -1}
 function carrierRoom(l,p){const cv=S.u.filter(u=>u.l===l&&u.k==='cv'&&!enemyOf(u.o,p)).length*2,f=S.u.filter(u=>u.l===l&&u.k==='ftr'&&!enemyOf(u.o,p)).length;return cv-f}
 function cargoOf(tr){return S.u.filter(u=>u.c===tr.i)}
 function trRoom(tr,k){const cg=cargoOf(tr);if(cg.length>=2)return false;if(cg.length===1&&k!=='inf'&&cg[0].k!=='inf')return false;return true}
@@ -71,6 +67,7 @@ function canMove(u,to){const p=S.cur,ph=S.phase,L=LOC[to],t=U[u.k].t;if(u.o!==p|
 function doMove(u,to,r){const from=u.l;
   if(r.kind==='load'){u.l=to;u.c=r.tr.i;u.mv=0;return}
   if(r.kind==='unload'){u.l=to;u.c=null;u.mv=0;r.tr.ul=1;r.tr.mv=0;if(r.amph){u.cm=1;u.am=from}return}
+  if(u.k==='tank'&&S.phase==='combat'){const path=bfs(u,to,true);if(Array.isArray(path))path.forEach(z=>{if(enemyOf(S.own[z],u.o)&&!enemyUnits(z,u.o).length){capture(z,u.o);log(`${P[u.o].n} tanks blitz through ${LOC[z].n}.`)}})}
   u.mv-=r.d;u.l=to;if(r.H&&S.phase==='combat')u.cm=1;if(u.k==='tr')cargoOf(u).forEach(c=>c.l=to)}
 function moveSel(from,to,pick){let n=0;const kinds=[];
   for(const key in pick){let want=pick[key];const cargo=key.endsWith('*'),k=key.replace('*','');
@@ -149,7 +146,7 @@ function nextPhase(){const p=S.cur;
 function limitWin(){const a=vcCount(0),x=vcCount(1);let t=a>x?0:x>a?1:-1;if(t<0){const inc=tt=>P.reduce((s,_,i)=>s+(TEAM[i]===tt?income(i):0),0);t=inc(0)>=inc(1)?0:1}S.phase='over';S.winner=t;log(`⏱ Turn limit reached: the ${TN[t]} win on victory cities (${a}–${x}).`)}
 function vcCount(t){return LOC.reduce((s,L,i)=>s+(L.vc&&TEAM[S.own[i]]===t?1:0),0)}
 function checkWin(){for(const t of[0,1]){const caps=P.map((x,i)=>i).filter(i=>TEAM[i]!==t).map(i=>P[i].cap);
-  if(vcCount(t)>=15||caps.every(c=>TEAM[S.own[c]]===t)){S.phase='over';S.winner=t;log(`🏆 The ${TN[t]} win the war!`)}}}
+  if(vcCount(t)>=(t===1?13:16)||caps.every(c=>TEAM[S.own[c]]===t)){S.phase='over';S.winner=t;log(`🏆 The ${TN[t]} win the war!`)}}}
 // ===== actions (host-authoritative) =====
 function apply(a){if(!S||S.phase==='over'||S.paused)return;const p=S.cur;
   switch(a.t){
@@ -238,30 +235,44 @@ const ownerOfColor=c=>{const i=P.findIndex(x=>x.c===c);return i<0?'g':i};
 function piece(k,c,x,y,w,extra=''){if(SPR.has(k))return `<image href="sprites/${k}-${ownerOfColor(c)}.webp" x="${x}" y="${y}" width="${w}" height="${w}" ${extra} preserveAspectRatio="xMidYMax meet"/>`;return `<g ${extra}><use href="#s-${k}" x="${x}" y="${y}" width="${w}" height="${w}" fill="${c}" stroke="#000a" stroke-width=".7"/><use href="#s-${k}" x="${x}" y="${y}" width="${w}" height="${w}" fill="url(#sheen)"/></g>`}
 const pieceSvg=(k,c)=>`<img src="sprites/${k}-${ownerOfColor(c)}.webp" width="40" height="40" style="flex:none;object-fit:contain" loading="lazy">`;
 // ===== render =====
-let zoom=+localStorage.getItem('it-zoom')||1800,fxOn=localStorage.getItem('it-fx')!=='off',fxRaf=0,fxTimer=0;
-function render(){if(!S)return;const M=$('map');M.style.width=zoom+'px';let h=DEFS+'<rect width="1100" height="560" fill="#235078"/>';
-  for(let a=0;a<LOC.length;a++)for(const b of ADJ[a]){if(b<a)continue;const A=LOC[a],B=LOC[b];
-    if(WRAP.has(a+'-'+b)||WRAP.has(b+'-'+a)){const[e,w]=A.x>B.x?[A,B]:[B,A];h+=`<line x1="${e.x}" y1="${e.y}" x2="1100" y2="${e.y}" stroke="#9cd" stroke-width="2" stroke-dasharray="6 4"/><line x1="${w.x}" y1="${w.y}" x2="0" y2="${w.y}" stroke="#9cd" stroke-width="2" stroke-dasharray="6 4"/>`;continue}
-    const both=!A.sea&&!B.sea;h+=`<line x1="${A.x}" y1="${A.y}" x2="${B.x}" y2="${B.y}" stroke="${both?'#d8c49a':'#9cd'}" stroke-width="${both?3:1.6}" ${both?'':'stroke-dasharray="5 4"'} opacity=".8"/>`}
-  LOC.forEach((L,l)=>{const cls='loc'+(l===ui.sel?' sel':'')+(S.battles.includes(l)?' bat':'');const r=L.sea?27:32;
-    const fill=L.sea?'#2d6c9e':P[S.own[l]].c;h+=`<g class="${cls}" data-l="${l}"><circle class="ring" cx="${L.x}" cy="${L.y}" r="${r}" fill="${fill}" fill-opacity="${L.sea?.9:.55}" stroke="${L.sea?'#bfe3ff':'#2a1d0e'}" stroke-width="${L.sea?1.5:2.5}" ${L.sea?'stroke-dasharray="4 3"':''}/>`;
-    h+=L.sea?`<text x="${L.x}" y="${L.y+r-5}" text-anchor="middle" font-size="8.5" font-style="italic" fill="#d6efff" stroke="#0a2a44" stroke-width="2" paint-order="stroke">${L.n}</text>`:`<text x="${L.x}" y="${L.y-r-3}" text-anchor="middle" font-size="10.5" font-weight="700" fill="#fff" stroke="#000" stroke-width="2.4" paint-order="stroke">${L.n}${L.vc?' ★':''}</text>`;
-    if(!L.sea)h+=`<text x="${L.x}" y="${L.y+r+10}" text-anchor="middle" font-size="9" fill="#ffe9a8" stroke="#000" stroke-width="2" paint-order="stroke">${L.v} IPC${L.vc?' · '+L.vc:''}</text>`;
-    if(S.ic[l])h+=piece('ic',P[S.own[l]].c,L.x+r-16,L.y-r-4,20);
-    const g={};at(l).forEach(u=>{const key=u.o+':'+u.k+(u.c!=null?'*':'');g[key]=(g[key]||0)+1});
-    const keys=Object.keys(g).sort((a,b)=>BUY.indexOf(a.split(':')[1].replace('*',''))-BUY.indexOf(b.split(':')[1].replace('*','')));
-    const pos=[[-28,-17],[-8,-17],[12,-17],[-28,5],[-8,5],[12,5]];
-    const here=at(l);if(here.length){const rank=u=>{const t=U[u.k].t;if(L.sea)return t==='S'?100+U[u.k].c:t==='A'?50+U[u.k].c:U[u.k].c;return t==='L'&&u.k!=='aa'?100+U[u.k].a*10+U[u.k].d:t==='A'?60+U[u.k].a:u.k==='aa'?40:0};
-      const top=here.slice().sort((a,b)=>rank(b)-rank(a))[0];const w=L.sea?40:36,x=L.x-w/2,y=L.y-w/2-2;h+=piece(top.k,P[top.o].c,x,y,w);
-      const owners=[...new Set(here.map(u=>u.o))];const bx=L.x+15,by=L.y-14;
-      h+=`<circle cx="${bx}" cy="${by}" r="9" fill="${P[top.o].c}" stroke="#fff" stroke-width="1.6"/><text x="${bx}" y="${by+3.5}" font-size="${here.length>99?7.5:here.length>9?9:10.5}" font-weight="800" fill="#fff" stroke="#000" stroke-width="1.8" paint-order="stroke" text-anchor="middle">${here.length}</text>`;
-      owners.filter(o=>o!==top.o).slice(0,3).forEach((o,i)=>{h+=`<circle cx="${bx-1-i*7}" cy="${by+13}" r="3.6" fill="${P[o].c}" stroke="#fff" stroke-width="1"/>`});
-      if(here.some(u=>u.c!=null))h+=`<text x="${L.x-22}" y="${L.y+18}" font-size="10">⚓</text>`}
+let zoom=+localStorage.getItem('it-zoom2')||2400,fxOn=localStorage.getItem('it-fx')!=='off',fxRaf=0,fxTimer=0;
+const PARCH='#eadcb4';
+function mix(c1,c2,t){const h=c=>[1,3,5].map(i=>parseInt(c.slice(i,i+2),16));const A=h(c1),B=h(c2);return '#'+A.map((v,i)=>Math.round(v*(1-t)+B[i]*t).toString(16).padStart(2,'0')).join('')}
+const landFill=o=>P[o]?mix(P[o].c,PARCH,.42):'#cfc3a0';
+function buildBase(M){M.setAttribute('viewBox',`0 0 ${MAP.W} ${MAP.H}`);
+  let h=DEFS+`<defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#d8cca8"/><line x1="0" y1="0" x2="0" y2="6" stroke="#a89a74" stroke-width="1.4"/></pattern>
+  <radialGradient id="vign" cx="50%" cy="50%" r="75%"><stop offset="60%" stop-color="#000" stop-opacity="0"/><stop offset="100%" stop-color="#3a2a10" stop-opacity=".35"/></radialGradient></defs>`;
+  h+=`<rect width="${MAP.W}" height="${MAP.H}" fill="#9dbccb"/>`;
+  LOC.forEach((L,l)=>{if(L.sea)h+=`<g class="loc sz" data-l="${l}"><path id="p${l}" d="${L.d}" fill="#9dbccb" stroke="#f3ead2" stroke-width="1.1" stroke-dasharray="4 3"/></g>`});
+  MAP.neutral.forEach(n=>{h+=`<path d="${n.d}" fill="url(#hatch)" stroke="#6b5a3a" stroke-width=".8"/>`});
+  LOC.forEach((L,l)=>{if(!L.sea)h+=`<g class="loc land" data-l="${l}"><path id="p${l}" d="${L.d}" fill="${landFill(S.own[l])}" stroke="#4a3418" stroke-width="1.1" stroke-linejoin="round"/></g>`});
+  h+=`<rect width="${MAP.W}" height="${MAP.H}" fill="url(#vign)" pointer-events="none"/>`;
+  h+='<g pointer-events="none">';
+  MAP.neutral.forEach(n=>{h+=`<text x="${n.x}" y="${n.y}" class="nl">${n.n}</text>`});
+  LOC.forEach((L,l)=>{if(L.sea)h+=`<g><circle cx="${L.x}" cy="${L.y+17}" r="6.5" fill="#f3ead2" stroke="#3d5b6b" stroke-width=".8"/><text x="${L.x}" y="${L.y+19.6}" class="szn">${L.num}</text></g>`;
+    else{const fs=Math.max(5.2,Math.min(9,Math.sqrt(L.a||400)/7));h+=`<text x="${L.x}" y="${L.y+13+fs}" class="tl" font-size="${fs}">${L.n}${L.vc?' ★':''}</text><text x="${L.x}" y="${L.y+14+fs*2}" class="ti" font-size="${fs*.9}">${L.v} IPC${L.vc?' · '+L.vc:''}</text>`}});
+  h+='</g><g id="hl" pointer-events="none"></g><g id="dyn"></g><g id="fx" pointer-events="none"></g>';
+  M.innerHTML=h;M.dataset.built='1';render.fills={}}
+function render(){if(!S)return;const M=$('map');M.style.width=zoom+'px';if(!M.dataset.built)buildBase(M);
+  LOC.forEach((L,l)=>{if(L.sea)return;const f=landFill(S.own[l]);if(render.fills[l]!==f){render.fills[l]=f;$('p'+l).setAttribute('fill',f)}});
+  let hl='';[...new Set([ui.sel,...S.battles])].forEach(l=>{if(l<0||l==null||!LOC[l])return;hl+=`<path d="${LOC[l].d}" fill="${l===ui.sel?'#ffe36a':'#ff3b2f'}" fill-opacity=".28" stroke="${l===ui.sel?'#ffd21f':'#ff2a1a'}" stroke-width="3"/>`});$('hl').innerHTML=hl;
+  let h='';
+  LOC.forEach((L,l)=>{const here=at(l);const ic=S.ic[l]&&!L.sea;if(!here.length&&!ic)return;h+=`<g class="loc" data-l="${l}">`;
+    if(ic)h+=piece('ic',P[S.own[l]].c,L.x+7,L.y-24,15);
+    if(here.length){const rank=u=>{const t=U[u.k].t;if(L.sea)return t==='S'?100+U[u.k].c:t==='A'?50+U[u.k].c:U[u.k].c;return t==='L'&&u.k!=='aa'?100+U[u.k].a*10+U[u.k].d:t==='A'?60+U[u.k].a:u.k==='aa'?40:0};
+      const top=here.slice().sort((a,b)=>rank(b)-rank(a))[0];const w=L.sea?26:24,x=L.x-w/2,y=L.y-w/2-2;
+      h+=`<circle cx="${L.x}" cy="${L.y}" r="15" fill="#fff" fill-opacity=".001"/>`+piece(top.k,P[top.o].c,x,y,w);
+      const owners=[...new Set(here.map(u=>u.o))];const bx=L.x+11,by=L.y-10;
+      h+=`<circle cx="${bx}" cy="${by}" r="6.5" fill="${P[top.o].c}" stroke="#fff" stroke-width="1.2"/><text x="${bx}" y="${by+2.6}" font-size="${here.length>99?5.5:here.length>9?6.8:7.8}" font-weight="800" fill="#fff" stroke="#000" stroke-width="1.3" paint-order="stroke" text-anchor="middle">${here.length}</text>`;
+      owners.filter(o=>o!==top.o).slice(0,3).forEach((o,i)=>{h+=`<circle cx="${bx-1-i*5.5}" cy="${by+10}" r="2.8" fill="${P[o].c}" stroke="#fff" stroke-width=".8"/>`});
+      if(here.some(u=>u.c!=null))h+=`<text x="${L.x-17}" y="${L.y+12}" font-size="8">⚓</text>`}
     h+='</g>'});
-  M.innerHTML=h+'<g id="fx" pointer-events="none"></g>';
+  $('dyn').innerHTML=h;
   const p=S.cur;$('who').innerHTML=`<span style="color:${P[p].c}">■</span> ${P[p].n} · ${S.ipc[p]} IPC · T${S.turn} · ${S.phase}`+(net.code?` · ${net.code}`:'');
   $('fxt').textContent='🎬'+(fxOn?'':'✕');
+  if(render.cc!==S.cur&&canAct()){render.cc=S.cur;requestAnimationFrame(()=>centerOn(P[S.cur].cap))}
   pauseUI();panel();if(S.fx&&S.fx.k!==render.fk){const first=render.fk===undefined;render.fk=S.fx.k;if(!first)cutscene(S.fx)}}
+function centerOn(l){const w=$('wrap'),L=LOC[l];if(!L)return;const k=zoom/MAP.W;w.scrollLeft=L.x*k-w.clientWidth/2;w.scrollTop=L.y*k-w.clientHeight/2}
 function row(k,c,txt,btns){return `<div class="row">${pieceSvg(k,c)}<span class="nm">${txt}</span>${btns}</div>`}
 function panel(){const p=S.cur,me=canAct();let m='',list='',bar=[];
   if(S.phase==='over'){m=`🏆 The ${TN[S.winner]} win the war${S.limit&&S.turn>S.limit?' on the turn limit':''}! (Allies ${vcCount(0)} · Axis ${vcCount(1)} victory cities)`;bar=[['Main menu',()=>location.href=location.pathname]]}
@@ -301,7 +312,13 @@ $('map').addEventListener('click',e=>{const g=e.target.closest('.loc');if(!g||!S
     ui.sel=l===ui.sel?-1:l;ui.pick={};render();return}
   ui.sel=l===ui.sel?-1:l;render()});
 function flash(t){$('msg').innerHTML=`<b style="color:#ff8a7a">${t}</b>`;setTimeout(()=>render(),1400)}
-$('zi').onclick=()=>{zoom=Math.min(2600,zoom+300);localStorage.setItem('it-zoom',zoom);render()};$('zo').onclick=()=>{zoom=Math.max(380,zoom-300);localStorage.setItem('it-zoom',zoom);render()};
+function setZoom(z,cx,cy){const w=$('wrap');z=Math.max(w.clientWidth||380,Math.min(7000,z));const r=w.getBoundingClientRect();cx=cx??r.width/2;cy=cy??r.height/2;
+  const mx=(w.scrollLeft+cx)/zoom,my=(w.scrollTop+cy)/zoom;zoom=z;localStorage.setItem('it-zoom2',zoom);$('map').style.width=zoom+'px';w.scrollLeft=mx*zoom-cx;w.scrollTop=my*zoom-cy}
+$('zi').onclick=()=>setZoom(zoom*1.35);$('zo').onclick=()=>setZoom(zoom/1.35);
+{const w=$('wrap');let pin=null;w.addEventListener('touchstart',e=>{if(e.touches.length===2){const[a,b]=e.touches,r=w.getBoundingClientRect();pin={d:Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY),z:zoom,cx:(a.clientX+b.clientX)/2-r.left,cy:(a.clientY+b.clientY)/2-r.top}}},{passive:true});
+ w.addEventListener('touchmove',e=>{if(pin&&e.touches.length===2){e.preventDefault();const[a,b]=e.touches;setZoom(pin.z*Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)/pin.d,pin.cx,pin.cy)}},{passive:false});
+ w.addEventListener('touchend',e=>{if(e.touches.length<2)pin=null});
+ w.addEventListener('wheel',e=>{if(e.ctrlKey||e.metaKey){e.preventDefault();const r=w.getBoundingClientRect();setZoom(zoom*(e.deltaY<0?1.15:1/1.15),e.clientX-r.left,e.clientY-r.top)}},{passive:false})}
 $('fxt').onclick=()=>{fxOn=!fxOn;localStorage.setItem('it-fx',fxOn?'on':'off');if(!fxOn)endFx();render()};
 $('mnu').onclick=()=>{if(confirm('Open the main menu? (game is saved)'))location.href=location.pathname};
 // ===== cutscenes =====
@@ -378,7 +395,7 @@ $('host').onclick=()=>hostRoom($('nm').value.trim()||'Host',5,0);
 $('join').onclick=()=>joinRoom($('code').value.trim(),$('nm').value.trim()||'Player');
 $('start').onclick=()=>{const ctrl=P.map((_,i)=>net.claims[i]||'ai');const names=P.map((x,i)=>net.claims[i]?(net.lobby.find(l=>l.id===net.claims[i])||{}).name||x.n:x.n);newGame(ctrl,{lvl:getLvl(),bonus:$('bonus').checked,names,limit:+$('limit').value});$('menu').style.display='none';commit()};
 if('serviceWorker'in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js');
-window.__G={get S(){return S},set S(v){S=v},apply,aiStep,nextPhase,newGame,canMove,net,ui,LOC,ADJ,U,cargoOf,get fxOn(){return fxOn},endFx,income,vcCount};
+window.__G={centerOn,setZoom,get zoom(){return zoom},get S(){return S},set S(v){S=v},apply,aiStep,nextPhase,newGame,canMove,net,ui,LOC,ADJ,U,cargoOf,get fxOn(){return fxOn},endFx,income,vcCount};
 
 // ===== Hard/Brutal AI helpers =====
 function aiBuyHard(p){const cap=P[p].cap,def=pow(S.u.filter(u=>u.l===cap&&u.o===p),false),th=threat(cap,p);
