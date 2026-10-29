@@ -14,10 +14,10 @@ const U={inf:{n:'Infantry',a:1,d:2,m:1,c:3,t:'L'},art:{n:'Artillery',a:2,d:2,m:1
 ftr:{n:'Fighter',a:3,d:4,m:4,c:10,t:'A'},bmb:{n:'Bomber',a:4,d:1,m:6,c:12,t:'A'},bb:{n:'Battleship',a:4,d:4,m:2,c:20,t:'S',hp:2},cv:{n:'Carrier',a:0,d:2,m:2,c:14,t:'S'},
 tr:{n:'Transport',a:0,d:0,m:2,c:7,t:'S'},sub:{n:'Submarine',a:2,d:1,m:2,c:6,t:'S'},dd:{n:'Destroyer',a:2,d:2,m:2,c:8,t:'S'},ca:{n:'Cruiser',a:3,d:3,m:2,c:12,t:'S'},ic:{n:'Industrial Complex',a:0,d:0,m:0,c:15,t:'X'}};
 const BUY=['inf','art','tank','aa','ftr','bmb','tr','sub','dd','ca','cv','bb','ic'];
-const START_N={0:"Russia:inf*10,art*2,tank*3,aa,ftr*2;Karelia S.S.R.:inf*7,art;West Russia:inf*5,art,tank;Caucasus:inf*5,art,tank;Kazakh S.S.R.:inf;Novosibirsk:inf;Buryatia S.S.R.:inf*2;Soviet Far East:inf*2;Archangel:inf;Yakut S.S.R.:inf;SZ1:sub",
+const START_N={0:"Russia:inf*10,art*2,tank*3,aa,ftr*2;Karelia S.S.R.:inf*7,art;West Russia:inf*5,art,tank;Caucasus:inf*5,art,tank;Kazakh S.S.R.:inf;Novosibirsk:inf*2;Buryatia S.S.R.:inf*3;Soviet Far East:inf*3;Archangel:inf;Yakut S.S.R.:inf;SZ1:sub",
 1:"Germany:inf*6,art*2,tank*3,aa,ftr*2,bmb;Western Europe:inf*5,art,tank*2,ftr,aa;Eastern Europe:inf*3,art,tank;Belorussia:inf*2;Ukraine:inf*3,art,tank*2,ftr;Bulgaria Romania:inf*2,tank;Balkans:inf*2;Southern Europe:inf*3,art,tank;Norway:inf*3,ftr;Finland:inf*3;Libya:inf*2,art,tank;Morocco Algeria:inf;Italian East Africa:inf*2;SZ4:tr,dd;SZ12:bb,tr,dd;SZ11:ca;SZ7:sub;SZ5:sub",
 2:"United Kingdom:inf*2,art,tank,aa,ftr*2,bmb;Eastern Canada:inf;Western Canada:inf;Egypt:inf*4,art,tank;Trans-Jordan:inf;Persia:inf;India:inf*5,aa,ftr;Burma:inf;Australia:inf*2;New Zealand:inf;Union of South Africa:inf;Kwangtung:inf;SZ3:bb,tr,dd;SZ26:ca,tr;SZ28:cv,ftr,dd",
-3:"Japan:inf*5,art,tank,aa,ftr*2,bmb;Manchuria:inf*5,art*2,tank,ftr;Kiangsu:inf*3,art;French Indochina Thailand:inf*3,art,ftr;Philippine Islands:inf*2;Borneo:inf;East Indies:inf*2;Formosa:inf;Caroline Islands:inf;Solomon Islands:inf;New Guinea:inf;Malaya:inf;SZ39:bb,tr;SZ38:cv,ftr*2,dd,ca;SZ37:tr,dd,sub;SZ40:dd",
+3:"Japan:inf*5,art,tank,aa,ftr*2,bmb;Manchuria:inf*5,art,tank,ftr;Kiangsu:inf*2,art;French Indochina Thailand:inf*3,art,ftr;Philippine Islands:inf*2;Borneo:inf;East Indies:inf*2;Formosa:inf;Caroline Islands:inf;Solomon Islands:inf;New Guinea:inf;Malaya:inf;SZ39:bb,tr;SZ38:cv,ftr*2,dd,ca;SZ37:tr,dd,sub;SZ40:dd",
 4:"Eastern United States:inf*3,art,tank,aa,ftr,bmb;Western United States:inf*2,art,ftr,aa;Central United States:inf*2,tank;Hawaiian Islands:inf,ftr;Alaska:inf;China:inf*5,ftr;Sinkiang:inf;Mexico:inf;SZ49:cv,dd;SZ9:tr,dd;SZ50:bb,sub,tr"};
 const START={};for(const p in START_N)START[p]=START_N[p].split(';').map(seg=>{const i=seg.lastIndexOf(':');return IDX(seg.slice(0,i))+':'+seg.slice(i+1)}).join(';');
 const $=id=>document.getElementById(id);const rnd=n=>Math.floor(Math.random()*n);const d6=()=>1+rnd(6);
@@ -179,7 +179,7 @@ function distTo(from,pred,dom){const seen=new Set([from]),q=[[from,0]];while(q.l
 function aiStep(){const p=S.cur;
   if(S.phase==='purchase'){const LV=S.lvl[p];let m=S.ipc[p];buyFerries(p);if(LV>=2){aiBuyHard(p);nextPhase();return}if(LV===0){while(spent()+3<=S.ipc[p])S.bought.inf=(S.bought.inf||0)+1;nextPhase();return}const coastal=[22,6,26,0,1].includes(P[p].cap)||p!==0&&p!==1;const nTr=S.u.filter(u=>u.o===p&&u.k==='tr').length;
     const buy=k=>{if(spent()+U[k].c<=S.ipc[p]){S.bought[k]=(S.bought[k]||0)+1;return true}return false};
-    if((p===2||p===3||p===4)&&nTr<3)buy('tr');if(p===4&&S.turn%2===0)buy('dd');if(S.turn%3===0)buy('ftr');
+    if(p===2||p===4)westBuy(p,buy);else if(p===3&&nTr<3)buy('tr');if(p===4&&S.turn%2===0)buy('dd');if(S.turn%3===0)buy('ftr');
     let g=0;while(g++<40){const r=Math.random();if(!(r<.55?buy('inf'):r<.8?buy('art'):buy('tank'))&&!buy('inf'))break}nextPhase();return}
   if(S.phase==='combat'){aiCombat(p);nextPhase();return}
   if(S.phase==='battle'){const l=S.battles[0];let g=0;while(S.battles.includes(l)&&g++<100){fightRound(l);if(!S.battles.includes(l))break;
@@ -201,6 +201,7 @@ function aiCombat(p){const lands=LOC.map((_,i)=>i).filter(i=>!LOC[i].sea);
     if(!avail.length)continue;const ap=pow(avail,true)+pow(air,true);
     const LV=S.lvl[p];let ratio=[1.9,S.turn>15?0.95:1.25,S.turn>8?0.9:1.08,S.turn>8?0.9:1.08][LV];if(LV>0){if(S.turn>20)ratio*=0.85;if(S.turn>30)ratio*=0.85;if(late&&(LOC[T.l].vc||isCap(T.l)))ratio*=0.9}if(LV===0&&Math.random()<.5)continue;if(ap>=T.def*ratio+(LV>=2?0.5:1)||(T.def===0)){avail.forEach(u=>{const r=canMove(u,T.l);if(r){doMove(u,T.l,r)}});if(T.def>0)air.forEach(u=>{const r=canMove(u,T.l);if(r)doMove(u,T.l,r)});
       S.fx={k:Math.random(),type:'move',from:avail[0].l===T.l?src[0]:avail[0].l,to:T.l,kinds:['inf','tank'],o:p}}}
+  if(p===2||p===4)westAssault(p);
   // 3. amphibious: transports with cargo or loadable
   S.u.filter(u=>u.o===p&&u.k==='tr'&&!u.ul).forEach(tr=>{
     if(!cargoOf(tr).length){const land=[...ADJ[tr.l]].find(n=>!LOC[n].sea&&S.own[n]===p&&S.u.some(x=>x.l===n&&x.o===p&&x.k==='inf'&&!x.cm&&x.mv>0));
@@ -211,11 +212,11 @@ function aiCombat(p){const lands=LOC.map((_,i)=>i).filter(i=>!LOC[i].sea);
     let best=null;[...LOC.keys()].filter(z=>LOC[z].sea&&(z===tr.l||canMove(tr,z))&&!enemyUnits(z,p).some(e=>e.k!=='sub')).forEach(z=>{ADJ[z].forEach(l=>{if(!LOC[l].sea&&enemyOf(S.own[l],p)){const d=pow(enemyUnits(l,p),false);const sc=LOC[l].v+3-d;if(!best||sc>best.sc)best={z,l,sc,d}}})});
     if(best&&best.d<=pow(cargoOf(tr),true)+3+(S.turn>15?3:0)){if(best.z!==tr.l){const r=canMove(tr,best.z);if(!r)return;doMove(tr,best.z,r)}
       cargoOf(tr).forEach(c=>{const r=canMove(c,best.l);if(r)doMove(c,best.l,r)});S.fx={k:Math.random(),type:'move',from:best.z,to:best.l,kinds:['tr','inf'],o:p}}});}
-function aiNonCombat(p){if(S.lvl[p]>=2)guardCapitals(p);ferry(p);// air lands at nearest friendly land
+function aiNonCombat(p){if(S.lvl[p]>=2)guardCapitals(p);if(p===2||p===4)shuck(p);ferry(p);// air lands at nearest friendly land
   S.u.filter(u=>u.o===p&&U[u.k].t==='A').forEach(u=>{if(!LOC[u.l].sea&&!enemyOf(S.own[u.l],p)&&!S.captured.includes(u.l))return;if(LOC[u.l].sea&&u.k==='ftr'&&carrierRoom(u.l,p)>=0)return;
     let best=null,bd=99;LOC.forEach((L,l)=>{const r=canMove(u,l);if(r&&r.d<bd){bd=r.d;best=l}});if(best!=null)doMove(u,best,canMove(u,best))});
   // unload cargo onto friendly land
-  S.u.filter(u=>u.o===p&&u.c!=null).forEach(c=>{const l=[...ADJ[c.l]].find(n=>!LOC[n].sea&&!enemyOf(S.own[n],p)&&!S.captured.includes(n));if(l!=null){const r=canMove(c,l);if(r)doMove(c,l,r)}});
+  S.u.filter(u=>u.o===p&&u.c!=null).forEach(c=>{const trc=S.u.find(t=>t.i===c.c);if(trc&&trc.shk===S.turn)return;const l=[...ADJ[c.l]].find(n=>!LOC[n].sea&&!enemyOf(S.own[n],p)&&!S.captured.includes(n));if(l!=null){const r=canMove(c,l);if(r)doMove(c,l,r)}});
   // move land units toward front
   S.u.filter(u=>u.o===p&&U[u.k].t==='L'&&u.k!=='aa'&&!u.cm&&u.c==null&&u.mv>0&&!LOC[u.l].sea).forEach(u=>{if(frontier(u.l,p))return;if(u.l===P[p].cap&&threat(u.l,p)>0)return;
     const goal=S.turn>8?(l=>!LOC[l].sea&&enemyOf(S.own[l],p)&&!!LOC[l].vc):(l=>!LOC[l].sea&&enemyOf(S.own[l],p));const g2=distTo(u.l,goal,'L')<99?goal:(l=>!LOC[l].sea&&enemyOf(S.own[l],p));const d0=distTo(u.l,g2,'L');let best=null;ADJ[u.l].forEach(n=>{if(LOC[n].sea)return;const r=canMove(u,n);if(!r)return;const d=distTo(n,g2,'L');if(d<d0&&(!best||d<best.d))best={n,d,r}});if(best)doMove(u,best.n,best.r)});
@@ -416,7 +417,7 @@ function aiBuyHard(p){const cap=P[p].cap,def=pow(S.u.filter(u=>u.l===cap&&u.o===
   const buy=k=>{if(spent()+U[k].c<=S.ipc[p]){S.bought[k]=(S.bought[k]||0)+1;return true}return false};
   if(th>def*0.8){while(buy('inf'));return}
   const naval=p===2||p===3||p===4,nTr=S.u.filter(u=>u.o===p&&u.k==='tr').length,nWar=S.u.filter(u=>u.o===p&&['dd','ca','bb','cv','sub'].includes(u.k)).length;
-  if(naval&&nTr<4)buy('tr');if(naval&&nWar<nTr+1)buy('dd');
+  if(p===2||p===4)westBuy(p,buy);else{if(naval&&nTr<4)buy('tr');if(naval&&nWar<nTr+1)buy('dd')}
   if(S.turn%2===1&&S.ipc[p]-spent()>25)buy('ftr');if(p===1&&S.turn%3===0)buy('bmb');
   const mix=['inf','inf','art','tank','inf','art','tank','inf'];let i=0,g=0;while(g++<60){if(!buy(mix[i++%mix.length])&&!buy('inf'))break}}
 function guardCapitals(p){const cap=P[p].cap;if(S.own[cap]!==p)return;const def=pow(S.u.filter(u=>u.l===cap&&u.o===p),false),th=threat(cap,p);if(th<=def)return;
@@ -465,10 +466,54 @@ function buyFerries(p){const st=stranded(p);if(st<6)return;const nTr=S.u.filter(
   const coast=LOC.some((L,i)=>S.ic[i]&&S.own[i]===p&&[...ADJ[i]].some(z=>LOC[z].sea));if(!coast)return;
   const want=Math.min(8,Math.ceil(st/2));let n=0;while(nTr+n<want&&spent()+7<=S.ipc[p]&&n<3){S.bought.tr=(S.bought.tr||0)+1;n++}
   if(nW<Math.ceil((nTr+n)/2)&&spent()+8<=S.ipc[p])S.bought.dd=(S.bought.dd||0)+1}
-function seaStep(tr,goal){let best=null,bd=distTo(tr.l,goal,'S');LOC.forEach((L,z)=>{if(!L.sea||z===tr.l)return;const r=canMove(tr,z);if(!r)return;const d=distTo(z,goal,'S');if(d<bd){bd=d;best={z,r}}});return best}
+function seaStep(tr,goal){let best=null,bd=distTo(tr.l,goal,'S');LOC.forEach((L,z)=>{if(!L.sea||z===tr.l)return;const r=canMove(tr,z);if(!r)return;const d=goal(z)?0:distTo(z,goal,'S');if(d<bd){bd=d;best={z,r}}});return best}
 function ferry(p){S.u.filter(u=>u.o===p&&u.k==='tr'&&!u.ul&&u.mv>0).forEach(tr=>{const cg=cargoOf(tr);
     if(cg.length){const vc=l=>enemyLand(p)(l)&&!!LOC[l].vc;const goal=distTo(tr.l,vc,'S')<99?vc:enemyLand(p);const st=seaStep(tr,goal);if(st)doMove(tr,st.z,st.r);return}
     const src=l=>!LOC[l].sea&&S.own[l]===p&&S.u.filter(u=>u.l===l&&u.o===p&&U[u.k].t==='L'&&u.k!=='aa'&&!u.cm&&u.mv>0).length>=3&&distTo(l,enemyLand(p),'L')>=2;
     if(![...ADJ[tr.l]].some(src)){const st=seaStep(tr,src);if(st)doMove(tr,st.z,st.r)}
     const land=[...ADJ[tr.l]].find(src);if(land==null)return;
     S.u.filter(u=>u.l===land&&u.o===p&&(u.k==='inf'||u.k==='art'||u.k==='tank')&&!u.cm&&u.mv>0&&u.c==null).sort((a,b)=>U[b.k].a-U[a.k].a).forEach(u=>{if(cargoOf(tr).length>=2)return;const r=canMove(u,tr.l);if(r&&r.kind==='load'&&r.tr===tr)doMove(u,tr.l,r);else if(r&&r.kind==='load'&&trRoom(tr,u.k)){u.l=tr.l;u.c=tr.i;u.mv=0}})})}
+
+// ===== Western Allies logistics: build transports with escorts, shuck troops to the UK, then assault Europe/Africa =====
+const UKL=()=>IDX('United Kingdom');
+const AMER=new Set(['Eastern United States','Central United States','Western United States','Eastern Canada','Western Canada','Mexico','Central America','Alaska','Brazil','West Indies']);
+const warship=u=>['dd','ca','bb','cv','sub'].includes(u.k);
+function westBuy(p,buy){const nTr=S.u.filter(u=>u.o===p&&u.k==='tr').length,nW=S.u.filter(u=>u.o===p&&warship(u)).length;const ukOK=!enemyOf(S.own[UKL()],p);
+  const want=p===4?(ukOK?6:4):3;let b=0;while(nTr+b<want&&b<(p===4?3:2)&&S.ipc[p]-spent()>=7+9){if(!buy('tr'))break;b++}
+  if(nW<Math.ceil((nTr+b)*0.6))buy('dd');if(nW+1<Math.ceil((nTr+b)*0.6))buy('dd');if(S.turn%3===0&&S.ipc[p]-spent()>=22)buy('bmb')}
+function seaToward(tr,goalSea){const st=seaStep(tr,z=>goalSea(z));if(st){doMove(tr,st.z,st.r);return true}return false}
+function escort(p,z){// pull nearby warships onto a transport stack so it is not left naked
+  const need=S.u.filter(u=>u.l===z&&u.o===p&&u.k==='tr').length;let have=S.u.filter(u=>u.l===z&&!enemyOf(u.o,p)&&warship(u)).length;
+  S.u.filter(u=>u.o===p&&warship(u)&&u.l!==z&&!u.cm&&u.mv>0).sort((a,b)=>bfs(a,z)-bfs(b,z)).forEach(w=>{if(have>=Math.ceil(need/2)+1)return;const r=canMove(w,z);if(r){doMove(w,z,r);have++}})}
+function shuck(p){const uk=UKL();if(enemyOf(S.own[uk],p))return;const nearUK=z=>LOC[z].sea&&ADJ[z].has(uk)&&!enemyUnits(z,p).some(e=>e.k!=='sub');
+  const amerCoast=z=>LOC[z].sea&&[...ADJ[z]].some(l=>!LOC[l].sea&&AMER.has(LOC[l].n)&&S.own[l]===p&&S.u.some(u=>u.l===l&&u.o===p&&['inf','art','tank'].includes(u.k)&&!u.cm&&u.mv>0));
+  const ends=new Set();
+  S.u.filter(u=>u.o===p&&u.k==='tr'&&!u.ul&&u.mv>0).forEach(tr=>{if(p===2&&!AMER.has(LOC[[...ADJ[tr.l]].find(l=>!LOC[l].sea)??0]?.n||''))return;
+    let cg=cargoOf(tr);
+    if(!cg.length){// load from American coast if adjacent
+      const land=[...ADJ[tr.l]].find(l=>!LOC[l].sea&&AMER.has(LOC[l].n)&&S.own[l]===p);
+      if(land!=null){S.u.filter(x=>x.l===land&&x.o===p&&['tank','art','inf'].includes(x.k)&&!x.cm&&x.mv>0&&x.c==null).sort((a,b)=>U[b.k].a-U[a.k].a).forEach(x=>{if(cargoOf(tr).length>=2||!trRoom(tr,x.k))return;x.l=tr.l;x.c=tr.i;x.mv=0})}
+      cg=cargoOf(tr);if(!cg.length){const waiting=S.u.filter(u=>u.l===uk&&u.o===p&&['inf','art','tank'].includes(u.k)).length;if(p===4&&!amerCoast(tr.l)&&!(ADJ[tr.l].has(uk)&&waiting>=4))seaToward(tr,amerCoast);ends.add(tr.l);tr.mv=0;return}}
+    tr.shk=S.turn;if(!nearUK(tr.l))seaToward(tr,nearUK);
+    if(nearUK(tr.l)){cargoOf(tr).forEach(c=>{const r=canMove(c,uk);if(r)doMove(c,uk,r)})}
+    ends.add(tr.l);tr.mv=0});
+  ends.forEach(z=>escort(p,z))}
+function westAssault(p){const uk=UKL();if(enemyOf(S.own[uk],p))return;
+  const trs=S.u.filter(u=>u.o===p&&u.k==='tr'&&!u.ul&&u.mv>0&&ADJ[u.l].has(uk)&&!cargoOf(u).length);if(!trs.length)return;
+  const pool=S.u.filter(u=>u.l===uk&&u.o===p&&['tank','art','inf'].includes(u.k)&&!u.cm&&u.mv>0&&u.c==null).sort((a,b)=>U[b.k].a-U[a.k].a);
+  const keep=p===2?Math.max(2,Math.ceil(threat(uk,p)/2)):0;const avail=pool.slice(0,Math.max(0,pool.length-keep));if(avail.length<2)return;
+  // candidate targets reachable by the transports this turn
+  const opts=[];trs.forEach(tr=>{[tr.l,...LOC.keys()].filter(z=>LOC[z].sea&&(z===tr.l||(canMove(tr,z)&&!enemyUnits(z,p).length))).forEach(z=>ADJ[z].forEach(l=>{if(!LOC[l].sea&&enemyOf(S.own[l],p))opts.push({tr,z,l})}))});
+  if(!opts.length)return;const cap=Math.min(avail.length,trs.length*2);
+  const byL={};opts.forEach(o=>{(byL[o.l]=byL[o.l]||[]).push(o)});let best=null;
+  for(const l in byL){const T=+l,def=pow(enemyUnits(T,p),false);const ntr=new Set(byL[l].map(o=>o.tr)).size;const n=Math.min(cap,ntr*2);const force=avail.slice(0,n);
+    const air=S.u.filter(u=>u.o===p&&U[u.k].t==='A'&&!u.cm&&bfs(u,T)>0&&bfs(u,T)*2<=u.mv);const ap=pow(force,true)+pow(air,true);
+    const val=LOC[T].v+(LOC[T].vc?6:0)+(P.some(x=>x.cap===T)?8:0);if((ap>=def*1.15+1||def===0)&&(!best||val-def*.3>best.sc))best={T,sc:val-def*.3,force,air}}
+  if(!best)return;let fi=0;const used=new Set();
+  byL[best.T].forEach(o=>{if(used.has(o.tr))return;used.add(o.tr);const tr=o.tr;
+    for(let i=0;i<2&&fi<best.force.length;i++){const x=best.force[fi];if(!trRoom(tr,x.k))continue;x.l=tr.l;x.c=tr.i;x.mv=0;fi++}
+    if(!cargoOf(tr).length)return;if(o.z!==tr.l){const r=canMove(tr,o.z);if(!r)return;doMove(tr,o.z,r)}
+    cargoOf(tr).forEach(c=>{const r=canMove(c,best.T);if(r)doMove(c,best.T,r)})});
+  if(S.u.some(u=>u.o===p&&u.l===best.T)){best.air.forEach(u=>{const r=canMove(u,best.T);if(r)doMove(u,best.T,r)});S.fx={k:Math.random(),type:'move',from:uk,to:best.T,kinds:['tr','inf'],o:p};log(`${P[p].n} launches an amphibious assault on ${LOC[best.T].n}.`)}
+  // any cargo still aboard but not landed goes back to the UK in noncombat
+}

@@ -50,13 +50,28 @@ html,body{touch-action:manipulation}#wrap{touch-action:none;overscroll-behavior:
 .rbox{background:#efe3c2;color:#2a1d0c;border-radius:12px;max-height:85%;overflow:auto;padding:10px 12px;width:100%;max-width:520px;font-size:13px;border:3px double #7a5a2a;font-family:Georgia,serif}
 .rbox h3{margin:2px 0 6px}.rpow{margin:6px 0}.rp{display:inline-block;color:#fff;border-radius:6px;padding:1px 8px;font-weight:700;text-shadow:0 1px 1px #000;margin-bottom:2px}.rbox button{width:100%;margin-top:6px}
 #sndpop{display:none;position:fixed;right:8px;top:46px;z-index:9;background:#1b2a38;border:1px solid #c8902e;border-radius:10px;padding:10px;flex-direction:column;gap:8px;font-size:14px}
-@media (orientation:landscape) and (max-height:540px){#wrap{margin-right:40%}#panel{position:fixed;right:0;top:40px;bottom:0;width:40%;max-height:none!important}#tut{right:41%}}
+
+
+#rot{display:none;position:fixed;inset:0;z-index:40;background:#0b1118f2;color:#f1e8d4;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;font-family:Georgia,serif}
+#rot h2{color:#e6b43c;margin:10px 0 4px}#rot .rph{transform-origin:60px 54px;animation:rph 2.4s ease-in-out infinite}@keyframes rph{0%,25%{transform:rotate(0)}55%,100%{transform:rotate(-90deg)}}
+@media (orientation:portrait) and (pointer:coarse){html:not(.norot) #rot{display:flex}}
+#drw,#go{display:none}
+@media (orientation:landscape) and (max-height:540px){
+ #top{position:fixed;right:0;top:0;bottom:0;width:66px;flex-direction:column;align-items:stretch;gap:4px;padding:4px;z-index:5;overflow-y:auto;background:#0c141cf0;border-left:2px solid #c8902e55}
+ #top button.sm{width:100%;min-width:0;padding:5px 0;font-size:14px;flex:none}
+ #who{white-space:normal;font-size:10.5px;line-height:1.25;text-align:center;flex:none;overflow:visible}
+ #drw,#go{display:block}#go{background:#e6b43c;font-size:11px!important;padding:8px 2px!important;line-height:1.1;white-space:normal;margin-top:auto}
+ #wrap{position:fixed;left:0;top:0;bottom:0;right:66px;margin:0!important;flex:none}
+ #panel{position:fixed;top:0;bottom:0;right:66px;width:min(46vw,380px);max-height:none!important;transform:translateX(calc(100% + 70px));transition:transform .22s ease;z-index:4;box-shadow:-6px 0 16px #0009;border-top:0;border-left:2px solid #c8902e}
+ #panel.open{transform:none}
+ #tut{left:8px;right:auto;top:8px;width:min(46vw,420px)}#sndpop{right:72px;top:8px}
+}
 </style></head><body><div id="app">
-<div id="top"><span id="who">Iron Theater 1942</span><button class="sm" id="zo" title="Zoom out">−</button><button class="sm" id="zi" title="Zoom in">+</button><button class="sm" id="fit" title="Fit whole map">⤢</button><button class="sm" id="snd" title="Sound">🔊</button><button class="sm" id="fxt">🎬</button><button class="sm" id="pz" style="display:none">⏸</button><button class="sm" id="mnu">☰</button></div>
+<div id="top"><span id="who">Iron Theater 1942</span><button class="sm" id="zo" title="Zoom out">−</button><button class="sm" id="zi" title="Zoom in">+</button><button class="sm" id="fit" title="Fit whole map">⤢</button><button class="sm" id="snd" title="Sound">🔊</button><button class="sm" id="fxt">🎬</button><button class="sm" id="pz" style="display:none">⏸</button><button class="sm" id="mnu">☰</button><button class="sm" id="drw" title="Orders drawer">📋</button><button id="go" class="sm">Done</button></div>
 <div id="wrap"><svg id="map" viewBox="0 0 2000 887"></svg></div>
 <div id="panel"><div id="msg"></div><div id="list"></div><div id="bar"></div><div id="log"></div></div></div>
 <div id="pause" style="position:fixed;inset:0;z-index:7;background:#0b1118ee;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:20px"><h2 style="color:#e6b43c">⏸ Paused by host</h2><div id="pinfo"></div><div id="seatpick"></div><button id="unpause" style="flex:none;width:220px;display:none">Resume play</button></div><div id="cut"><svg id="cutsvg" viewBox="0 0 400 260"></svg><button id="skip" style="flex:none;width:160px;margin-top:10px">Skip ⏭</button></div>
-<div id="tut"></div><div id="recap"></div><div id="sndpop"></div><div id="menu"><h1>⚙ Iron Theater 1942</h1><p style="text-align:center;margin:0">Five powers. Two coalitions. One world war.</p>
+<div id="rot"><svg viewBox="0 0 120 120" width="120" height="120"><g class="rph"><rect x="38" y="14" width="44" height="80" rx="8" fill="none" stroke="#e6b43c" stroke-width="5"/><circle cx="60" cy="84" r="3.5" fill="#e6b43c"/></g><path d="M18 70 A44 44 0 0 1 40 26" fill="none" stroke="#f1e8d4" stroke-width="4"/><path d="M40 26 l-12 2 l6 9z" fill="#f1e8d4"/></svg><h2>Rotate your phone</h2><p>Iron Theater plays in landscape. Your game keeps running underneath.</p></div><div id="tut"></div><div id="recap"></div><div id="sndpop"></div><div id="menu"><h1>⚙ Iron Theater 1942</h1><p style="text-align:center;margin:0">Five powers. Two coalitions. One world war.</p>
 <label>Quick setup</label><select id="mode"><option value="ai">Me vs AI (pick my power below)</option><option value="hot">Pass &amp; play (all human)</option><option value="watch">Watch AI vs AI</option></select>
 <label>My power</label><select id="pw"></select>
 <b>Who controls each power</b><div id="pcs" style="width:260px"></div>

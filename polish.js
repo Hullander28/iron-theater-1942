@@ -1,4 +1,5 @@
 'use strict';
+if(window.NO_ROTATE||(navigator.webdriver&&!window.FORCE_ROTATE))document.documentElement.classList.add('norot');
 // ===== Iron Theater 1942 – polish layer: sound, battle board, tutorial, map look, zoom gestures, turn recaps =====
 // ---------- Sound (all synthesized with Web Audio; no external assets) ----------
 const SFX=(()=>{let ctx=null,master=null,musicGain=null,noise=null,music=null;
@@ -157,3 +158,22 @@ render=function(){_render();if(!S)return;$('panel').classList.toggle('battle',S.
   if(S.phase==='battle'){const l=ui.bat!=null&&S.battles.includes(ui.bat)?ui.bat:S.battles[0];if(l!=null)$('msg').innerHTML=boardHTML(l)}else boardK=null;
   if(S.phase!=='battle')ui.cas={};
   playFor();tutRender();recapCheck()};
+
+// ---------- landscape: fullscreen + orientation lock, right rail, slide-out drawer ----------
+const coarse=matchMedia('(pointer:coarse)').matches;
+function goLandscape(){if(!coarse)return;try{const el=document.documentElement,rf=el.requestFullscreen||el.webkitRequestFullscreen;
+  const lock=()=>{try{const p=screen.orientation&&screen.orientation.lock&&screen.orientation.lock('landscape');if(p&&p.catch)p.catch(()=>{})}catch(e){}};
+  if(rf&&!document.fullscreenElement){const r=rf.call(el,{navigationUI:'hide'});if(r&&r.then)r.then(lock,lock);else lock()}else lock()}catch(e){}}
+document.addEventListener('pointerdown',goLandscape,{once:true,capture:true});document.addEventListener('touchend',goLandscape,{once:true,capture:true});
+const LMQ=matchMedia('(orientation:landscape) and (max-height:540px)');
+const SHORT=['USSR','Germany','UK','Japan','USA'];
+let drawerKey=null,drawerOpen=false;
+function setDrawer(o){drawerOpen=o;$('panel').classList.toggle('open',o);$('drw').textContent=o?'✕':'📋'}
+$('drw').onclick=()=>setDrawer(!drawerOpen);
+$('go').onclick=()=>{const bs=[...document.querySelectorAll('#bar button')];const b=bs[bs.length-1];if(b&&!b.disabled)b.click()};
+function railUpdate(){if(!S||!LMQ.matches)return;const p=S.cur;$('who').innerHTML=`<span style="color:${P[p].c};font-size:16px">■</span><br><b>${SHORT[p]}</b><br>${S.ipc[p]} IPC<br>Turn ${S.turn}<br><i>${S.phase}</i>`;
+  const bs=[...document.querySelectorAll('#bar button')];const b=bs[bs.length-1];const g=$('go');g.textContent=b?b.textContent.replace(/&.*$/,'').replace('Done → ','→ ').replace('Auto-place & end turn','End turn'):'—';g.disabled=!b||b.disabled||!canAct();
+  const me=canAct();const want=me&&(['purchase','battle','mobilize'].includes(S.phase)||ui.sel>=0||!!S.pend||S.phase==='over');
+  const key=[S.phase,p,ui.sel,!!S.pend,me].join(':');if(key!==drawerKey){drawerKey=key;setDrawer(want)}}
+LMQ.addEventListener&&LMQ.addEventListener('change',()=>{drawerKey=null;setTimeout(()=>{window.onZoom&&onZoom();if(S)render()},120)});
+const _render2=render;render=function(){_render2();railUpdate()};
