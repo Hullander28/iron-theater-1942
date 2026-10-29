@@ -168,12 +168,24 @@ document.addEventListener('pointerdown',goLandscape,{once:true,capture:true});do
 const LMQ=matchMedia('(orientation:landscape) and (max-height:540px)');
 const SHORT=['USSR','Germany','UK','Japan','USA'];
 let drawerKey=null,drawerOpen=false;
-function setDrawer(o){drawerOpen=o;$('panel').classList.toggle('open',o);$('drw').textContent=o?'✕':'📋'}
-$('drw').onclick=()=>setDrawer(!drawerOpen);
+let peekMode=false;
+function setDrawer(o,pk){drawerOpen=o;peekMode=!!(o&&pk);const pn=$('panel');pn.classList.toggle('open',o&&!peekMode);pn.classList.toggle('peek',peekMode);$('drw').textContent=o&&!peekMode?'✕':'📋';$('peek').querySelector('.hd').textContent=peekMode?'▲':'▼'}
+function selOnly(){return S&&ui.sel>=0&&!['purchase','battle','mobilize','over'].includes(S.phase)&&!S.pend}
+function peekText(){const l=ui.sel;if(!S||l<0)return'';const L=LOC[l];const o=S.own[l];const own=L.sea?'Sea zone':(o!=null&&P[o]?P[o].n:'Neutral');
+  const cnt={};S.u.filter(u=>u.l===l).forEach(u=>{const k=(P[u.o]?SHORT[u.o]+' ':'')+(U[u.k]?U[u.k].n:u.k);cnt[k]=(cnt[k]||0)+1});
+  const us=Object.entries(cnt).map(([k,n])=>n+'× '+k).join(', ')||'no units';
+  return `<b>${L.n}</b> · <span style="color:${o!=null&&P[o]?P[o].c:'#ccc'}">${own}</span>${L.v?' · '+L.v+' IPC':''}<br><span style="opacity:.85">${us}</span>`}
+function keepVisible(){if(ui.sel<0||!peekMode)return;const w=$('wrap'),L=LOC[ui.sel];if(!L)return;const r=$('map').getBoundingClientRect(),k=r.width/MAP.W;const y=r.top+L.y*k,x=r.left+L.x*k;
+  if(y>innerHeight-56-24||y<8||x<8||x>w.clientWidth-8){w.scrollTop=L.y*(zoom/MAP.W)-(w.clientHeight-56)/2;w.scrollLeft=L.x*(zoom/MAP.W)-w.clientWidth/2}}
+$('peek').onclick=e=>{e.stopPropagation();if(peekMode)setDrawer(true,false);else if(selOnly())setDrawer(true,true);else setDrawer(false)};
+(()=>{let sy=null;const pk=$('panel');pk.addEventListener('touchstart',e=>{sy=e.touches[0].clientY},{passive:true});pk.addEventListener('touchend',e=>{if(sy==null)return;const d=e.changedTouches[0].clientY-sy;sy=null;if(d<-25&&peekMode)setDrawer(true,false);else if(d>40&&drawerOpen&&!peekMode&&selOnly()&&pk.scrollTop<=0)setDrawer(true,true)},{passive:true})})();
+$('wrap').addEventListener('pointerdown',()=>{if(LMQ.matches&&drawerOpen&&!peekMode&&selOnly()){drawerKey=null;setDrawer(true,true)}},true);
+$('drw').onclick=()=>{if(peekMode)setDrawer(true,false);else if(drawerOpen&&selOnly())setDrawer(true,true);else setDrawer(!drawerOpen)};
 $('go').onclick=()=>{const bs=[...document.querySelectorAll('#bar button')];const b=bs[bs.length-1];if(b&&!b.disabled)b.click()};
 function railUpdate(){if(!S||!LMQ.matches)return;const p=S.cur;$('who').innerHTML=`<span style="color:${P[p].c};font-size:16px">■</span><br><b>${SHORT[p]}</b><br>${S.ipc[p]} IPC<br>Turn ${S.turn}<br><i>${S.phase}</i>`;
   const bs=[...document.querySelectorAll('#bar button')];const b=bs[bs.length-1];const g=$('go');g.textContent=b?b.textContent.replace(/&.*$/,'').replace('Done → ','→ ').replace('Auto-place & end turn','End turn'):'—';g.disabled=!b||b.disabled||!canAct();
   const me=canAct();const want=me&&(['purchase','battle','mobilize'].includes(S.phase)||ui.sel>=0||!!S.pend||S.phase==='over');
-  const key=[S.phase,p,ui.sel,!!S.pend,me].join(':');if(key!==drawerKey){drawerKey=key;setDrawer(want)}}
+  const key=[S.phase,p,ui.sel,!!S.pend,me].join(':');if(key!==drawerKey){drawerKey=key;setDrawer(want,selOnly());if(peekMode)requestAnimationFrame(keepVisible)}
+  if(peekMode||drawerOpen)$('peek').querySelector('.tx').innerHTML=selOnly()?peekText():'Orders — tap ▼ to close';}
 LMQ.addEventListener&&LMQ.addEventListener('change',()=>{drawerKey=null;setTimeout(()=>{window.onZoom&&onZoom();if(S)render()},120)});
 const _render2=render;render=function(){_render2();railUpdate()};
