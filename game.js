@@ -327,7 +327,7 @@ function mapTap(t){const g=t&&t.closest&&t.closest('.loc');if(!g||!S)return;cons
       flash(`Can't move those units to ${LOC[l].n}.`)}
     ui.sel=l===ui.sel?-1:l;ui.pick={};render();return}
   ui.sel=l===ui.sel?-1:l;render()}
-function flash(t){$('msg').innerHTML=`<b style="color:#ff8a7a">${t}</b>`;setTimeout(()=>render(),1400)}
+function flash(t){$('msg').innerHTML=`<b style="color:#ff8a7a">${t}</b>`;const pk=document.querySelector('#peek .tx');if(pk)pk.innerHTML=`<b style="color:#ff8a7a">${t}</b>`;setTimeout(()=>render(),1400)}
 function setZoom(z,cx,cy){const w=$('wrap');z=Math.max(fitZoom(),Math.min(8000,z));const r=w.getBoundingClientRect();cx=cx??r.width/2;cy=cy??r.height/2;
   const mx=(w.scrollLeft+cx)/zoom,my=(w.scrollTop+cy)/zoom;zoom=z;localStorage.setItem('it-zoom2',zoom);$('map').style.width=zoom+'px';w.scrollLeft=mx*zoom-cx;w.scrollTop=my*zoom-cy;window.onZoom&&onZoom()}
 function fitZoom(){const w=$('wrap');return Math.round(Math.min(w.clientWidth||390,(w.clientHeight||300)*MAP.W/MAP.H))}

@@ -182,9 +182,9 @@ $('peek').onclick=e=>{e.stopPropagation();if(peekMode)setDrawer(true,false);else
 (()=>{let sy=null;const pk=$('panel');pk.addEventListener('touchstart',e=>{sy=e.touches[0].clientY},{passive:true});pk.addEventListener('touchend',e=>{if(sy==null)return;const d=e.changedTouches[0].clientY-sy;sy=null;if(d<-25&&peekMode)setDrawer(true,false);else if(d>40&&drawerOpen&&!peekMode&&selOnly()&&pk.scrollTop<=0)setDrawer(true,true)},{passive:true})})();
 $('wrap').addEventListener('pointerdown',()=>{if(LMQ.matches&&drawerOpen&&!peekMode&&selOnly()){drawerKey=null;setDrawer(true,true)}},true);
 $('drw').onclick=()=>{if(peekMode)setDrawer(true,false);else if(drawerOpen&&selOnly())setDrawer(true,true);else setDrawer(!drawerOpen)};
-$('go').onclick=()=>{const bs=[...document.querySelectorAll('#bar button')];const b=bs[bs.length-1];if(b&&!b.disabled)b.click()};
+$('go').onclick=()=>{const bs=[...document.querySelectorAll('#bar button')];const b=S&&S.phase==='battle'?bs.find(x=>!x.disabled&&/Roll|Confirm|Auto/.test(x.textContent)):bs[bs.length-1];if(b&&!b.disabled)b.click()};
 function railUpdate(){if(!S||!LMQ.matches)return;const p=S.cur;$('who').innerHTML=`<span style="color:${P[p].c};font-size:16px">■</span><br><b>${SHORT[p]}</b><br>${S.ipc[p]} IPC<br>Turn ${S.turn}<br><i>${S.phase}</i>`;
-  const bs=[...document.querySelectorAll('#bar button')];const b=bs[bs.length-1];const g=$('go');g.textContent=b?b.textContent.replace(/&.*$/,'').replace('Done → ','→ ').replace('Auto-place & end turn','End turn'):'—';g.disabled=!b||b.disabled||!canAct();
+  const bs=[...document.querySelectorAll('#bar button')];const b=S.phase==='battle'?(bs.find(x=>!x.disabled&&/Roll|Confirm|Auto/.test(x.textContent))||bs[0]):bs[bs.length-1];const g=$('go');g.textContent=b?b.textContent.replace(/&.*$/,'').replace('Done → ','→ ').replace('Auto-place & end turn','End turn'):'—';g.disabled=!b||b.disabled||!canAct();
   const me=canAct();const want=me&&(['purchase','battle','mobilize'].includes(S.phase)||ui.sel>=0||!!S.pend||S.phase==='over');
   const key=[S.phase,p,ui.sel,!!S.pend,me].join(':');if(key!==drawerKey){drawerKey=key;setDrawer(want,selOnly());if(peekMode)requestAnimationFrame(keepVisible)}
   if(peekMode||drawerOpen)$('peek').querySelector('.tx').innerHTML=selOnly()?peekText():'Orders — tap ▼ to close';}
