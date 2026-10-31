@@ -37,8 +37,8 @@ const SFX=(()=>{let ctx=null,master=null,musicGain=null,noise=null,music=null;
 window.SFX=SFX;
 ['pointerdown','touchstart','touchend','click','keydown'].forEach(ev=>document.addEventListener(ev,()=>{const c=SFX.init();if(c&&c.state!=='running')c.resume();SFX.startMusic()},{passive:true}));
 function soundUI(){const el=$('sndpop');el.style.display=el.style.display==='flex'?'none':'flex';el.innerHTML=`<b>Sound</b><label>Volume <input type="range" id="vol" min="0" max="1" step="0.05" value="${SFX.st.vol}" style="width:150px"></label>
-  <label><input type="checkbox" id="mute" ${SFX.st.mute?'checked':''} style="width:auto"> Mute all</label><label><input type="checkbox" id="lowfx" ${document.documentElement.classList.contains('lowfx')?'checked':''} style="width:auto"> Low graphics (faster)</label><label><input type="checkbox" id="mus" ${SFX.st.music?'checked':''} style="width:auto"> Ambient music</label><button class="sm" id="sndx">Close</button>`;
-  $('vol').oninput=e=>{SFX.st.vol=+e.target.value;SFX.apply();sndBtn()};$('lowfx').onchange=e=>{document.documentElement.classList.toggle('lowfx',e.target.checked);localStorage.setItem('it-gfx',e.target.checked?'low':'high')};$('mute').onchange=e=>{SFX.st.mute=e.target.checked;SFX.apply();sndBtn()};$('mus').onchange=e=>{SFX.st.music=e.target.checked;SFX.init();SFX.startMusic();SFX.apply()};$('sndx').onclick=()=>el.style.display='none'}
+  <label><input type="checkbox" id="mute" ${SFX.st.mute?'checked':''} style="width:auto"> Mute all</label><label><input type="checkbox" id="lowfx" ${document.documentElement.classList.contains('lowfx')?'checked':''} style="width:auto"> Low graphics (faster)</label><label><input type="checkbox" id="cfm" ${localStorage.getItem('it-confirm')!=='0'?'checked':''} style="width:auto"> Confirm moves</label><label><input type="checkbox" id="mus" ${SFX.st.music?'checked':''} style="width:auto"> Ambient music</label><button class="sm" id="sndx">Close</button>`;
+  $('vol').oninput=e=>{SFX.st.vol=+e.target.value;SFX.apply();sndBtn()};$('cfm').onchange=e=>{localStorage.setItem('it-confirm',e.target.checked?'1':'0');ui.mv=null;if(S)render()};$('lowfx').onchange=e=>{document.documentElement.classList.toggle('lowfx',e.target.checked);localStorage.setItem('it-gfx',e.target.checked?'low':'high')};$('mute').onchange=e=>{SFX.st.mute=e.target.checked;SFX.apply();sndBtn()};$('mus').onchange=e=>{SFX.st.music=e.target.checked;SFX.init();SFX.startMusic();SFX.apply()};$('sndx').onclick=()=>el.style.display='none'}
 function sndBtn(){$('snd').textContent=SFX.st.mute||SFX.st.vol==0?'🔇':'🔊'}
 $('snd').onclick=soundUI;sndBtn();
 let lastFxK=null,lastSndK=null;
@@ -127,7 +127,7 @@ const TUT=[
  {ph:'purchase',txt:'Welcome, Commander! You lead the <b>Soviet Union</b>. Each turn has six phases. First, <b>Purchase</b>: tap <b>+</b> next to Infantry twice (3 IPC each).',hl:'#list button[data-b="inf"][data-d="1"]',done:()=>(S.bought.inf||0)>=2},
  {ph:'purchase',txt:'Good. Unspent IPC carries over. Tap <b>Done → Combat move</b>.',hl:'#bar button',done:()=>S.phase!=='purchase'},
  {ph:'combat',txt:'<b>Combat move</b>: move into enemy spaces to attack. Tap <b>West Russia</b> (highlighted) to select your army there.',terr:'West Russia',done:()=>ui.sel===IDX('West Russia')},
- {ph:'combat',txt:'Use −/+ to choose units, then tap German-held <b>Belorussia</b> next door. Land units move only across shared borders – infantry 1, tanks 2.',terr:'Belorussia',done:()=>S.u.some(u=>u.o===0&&u.l===IDX('Belorussia'))},
+ {ph:'combat',txt:'Use −/+ to choose units, then tap German-held <b>Belorussia</b> next door and tap <b>Confirm attack</b>. Land units move only across shared borders – infantry 1, tanks 2.',terr:'Belorussia',done:()=>S.u.some(u=>u.o===0&&u.l===IDX('Belorussia'))},
  {ph:'combat',txt:'Ready. Tap <b>Done → Combat</b> to fight.',hl:'#bar button:last-child',done:()=>S.phase!=='combat'},
  {ph:'battle',txt:'The <b>battle board</b>: units line up by hit value. A die hits when it rolls <b>at or under</b> its column. Tap <b>Roll round</b> (or Auto-resolve). Tick “choose my casualties” to pick your own losses.',hl:'#bar button',done:()=>S.phase!=='battle'},
  {ph:'noncombat',txt:'<b>Noncombat move</b>: reposition units that did not fight and land planes. Tap <b>Done → Mobilize</b> when finished.',hl:'#bar button:last-child',done:()=>S.phase!=='noncombat'},
@@ -187,6 +187,25 @@ function railUpdate(){if(!S||!LMQ.matches)return;const p=S.cur;$('who').innerHTM
   const bs=[...document.querySelectorAll('#bar button')];const b=S.phase==='battle'?(bs.find(x=>!x.disabled&&/Roll|Confirm|Auto/.test(x.textContent))||bs[0]):bs[bs.length-1];const g=$('go');g.textContent=b?b.textContent.replace(/&.*$/,'').replace('Done → ','→ ').replace('Auto-place & end turn','End turn'):'—';g.disabled=!b||b.disabled||!canAct();
   const me=canAct();const want=me&&(['purchase','battle','mobilize'].includes(S.phase)||ui.sel>=0||!!S.pend||S.phase==='over');
   const key=[S.phase,p,ui.sel,!!S.pend,me].join(':');if(key!==drawerKey){drawerKey=key;setDrawer(want,selOnly());if(peekMode)requestAnimationFrame(keepVisible)}
-  if(peekMode||drawerOpen)$('peek').querySelector('.tx').innerHTML=selOnly()?peekText():'Orders — tap ▼ to close';}
+  if(peekMode||drawerOpen)$('peek').querySelector('.tx').innerHTML=ui.mv?`<b>${ui.mv.atk?'⚔ Attack':'➜ Move'} ${ui.mv.n}</b> unit(s)<br>${LOC[ui.mv.from].n} → <b>${LOC[ui.mv.to].n}</b>`:selOnly()?peekText():'Orders — tap ▼ to close';}
 LMQ.addEventListener&&LMQ.addEventListener('change',()=>{drawerKey=null;setTimeout(()=>{window.onZoom&&onZoom();if(S)render()},120)});
 const _render2=render;render=function(){_render2();railUpdate()};
+
+// ---------- undo button on rail, away banner, turn alerts ----------
+$('und').onclick=()=>{if(typeof canUndo==='function'&&canUndo()&&canAct()){ui.mv=null;ui.sel=-1;ui.pick={};doAct({t:'undo'})}};
+let wasMy=null,titleT=0;const baseTitle=document.title;
+function stopTitle(){clearInterval(titleT);titleT=0;document.title=baseTitle}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)stopTitle()});
+function turnAlert(){const p=S.cur;try{navigator.vibrate&&navigator.vibrate([220,120,220])}catch(e){}
+  try{SFX.play('sting')}catch(e){}
+  const b=$('turnban');b.textContent=`🔔 Your turn — ${P[p].n}`;b.style.display='block';clearTimeout(turnAlert.t);turnAlert.t=setTimeout(()=>b.style.display='none',3200);
+  if(document.hidden&&!titleT){let on=0;titleT=setInterval(()=>{document.title=(on^=1)?'🔔 Your turn!':baseTitle},900);setTimeout(stopTitle,60000)}
+  try{if('Notification'in window&&Notification.permission==='granted'&&(document.hidden||!document.hasFocus())){const o={body:`${P[p].n} – turn ${S.turn}. Tap to play.`,icon:'icon-192.png',tag:'it-turn',renotify:true};
+    if(navigator.serviceWorker&&navigator.serviceWorker.ready)navigator.serviceWorker.ready.then(r=>r.showNotification('Iron Theater 1942: your turn',o)).catch(()=>{try{new Notification('Iron Theater 1942: your turn',o)}catch(e){}});else new Notification('Iron Theater 1942: your turn',o)}}catch(e){}
+  window.__turnAlerts=(window.__turnAlerts||0)+1}
+function askNotify(){try{if('Notification'in window&&Notification.permission==='default')Notification.requestPermission().catch(()=>{})}catch(e){}}
+$('host').addEventListener('click',askNotify);$('join').addEventListener('click',askNotify);
+const _render3=render;render=function(){_render3();if(!S)return;
+  const u=$('und');const can=typeof canUndo==='function'&&canUndo()&&canAct();u.style.display=can&&LMQ.matches?'block':'none';
+  const aw=$('awayban');const away=net.role!=='local'&&S.away&&S.away[S.cur]&&S.phase!=='over';aw.textContent=away?`⏳ Waiting for ${S.names[S.cur]||P[S.cur].n} (${P[S.cur].n}) to reconnect… their turn is on hold.`:'';aw.style.display=away?'block':'none';
+  const my=net.role!=='local'&&canAct()&&!S.paused;if(my&&wasMy!==true)turnAlert();wasMy=my};

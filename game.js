@@ -147,7 +147,8 @@ function autoPlace(){const p=S.cur;const caps=[P[p].cap,...LOC.map((_,i)=>i)];
   for(const k of BUY)while(S.bought[k]>0){let done=false;for(const l of caps){const cands=U[k].t==='S'?[...ADJ[l]].filter(z=>LOC[z].sea):[l];
       for(const z of cands)if(placeOK(z,k)){place(z,k);done=true;break}if(done)break}if(!done){S.ipc[p]+=U[k].c*S.bought[k];S.bought[k]=0}}}
 function spent(){return Object.entries(S.bought).reduce((s,[k,n])=>s+U[k].c*n,0)}
-function nextPhase(){const p=S.cur;
+function canUndo(){return !!(S&&S.undo&&S.undo.length&&(S.phase==='combat'||S.phase==='noncombat')&&S.undo[S.undo.length-1].ph===S.phase&&S.undo[S.undo.length-1].p===S.cur)}
+function nextPhase(){S.undo=[];const p=S.cur;
   if(S.phase==='purchase'){S.ipc[p]-=spent();S.phase='combat';S.bank=S.ipc[p]}
   else if(S.phase==='combat'){findBattles();S.phase=S.battles.length?'battle':'noncombat'}
   else if(S.phase==='battle'){S.battles.slice().forEach(autoBattle);S.phase='noncombat'}
@@ -165,7 +166,8 @@ function apply(a){if(!S||S.phase==='over'||S.paused)return;const p=S.cur;
   case'cas':if(S.pend)resolvePend(a.pick);break;
   case'choose':S.choose=!!a.v;break;
   case'buy':if(S.phase!=='purchase')return;{const n=(S.bought[a.k]||0)+a.d;if(n<0)return;if(a.d>0&&spent()+U[a.k].c>S.ipc[p])return;S.bought[a.k]=n}break;
-  case'move':if(S.phase==='combat'||S.phase==='noncombat')moveSel(a.from,a.to,a.pick);break;
+  case'move':if(S.phase==='combat'||S.phase==='noncombat'){const snap=JSON.stringify({u:S.u,own:S.own,captured:S.captured,nid:S.nid});const b0=JSON.stringify(S.u.map(u=>[u.l,u.c]));moveSel(a.from,a.to,a.pick);if(JSON.stringify(S.u.map(u=>[u.l,u.c]))!==b0){S.undo=S.undo||[];S.undo.push({ph:S.phase,p,s:snap});if(S.undo.length>25)S.undo.shift()}}break;
+  case'undo':if(canUndo()){const z=S.undo.pop();Object.assign(S,JSON.parse(z.s));S.fx=null;log(`${P[p].n} undid a move.`)}break;
   case'round':if(S.phase==='battle'&&S.battles.includes(a.l))fightRound(a.l);break;
   case'auto':if(S.phase==='battle'&&S.battles.includes(a.l))autoBattle(a.l);break;
   case'retreat':if(S.phase==='battle'&&S.battles.includes(a.l)&&S.round[a.l])retreat(a.l);break;
@@ -270,7 +272,8 @@ function buildBase(M){M.setAttribute('viewBox',`0 0 ${MAP.W} ${MAP.H}`);
   M.innerHTML=h;M.dataset.built='1';render.fills={}}
 function render(){if(!S)return;const M=$('map');M.style.width=zoom+'px';if(!M.dataset.built)buildBase(M);
   LOC.forEach((L,l)=>{if(L.sea)return;const f=landFill(S.own[l]);if(render.fills[l]!==f){render.fills[l]=f;$('p'+l).setAttribute('fill',f)}});
-  let hl='';[...new Set([ui.sel,...S.battles])].forEach(l=>{if(l<0||l==null||!LOC[l])return;hl+=`<path d="${LOC[l].d}" fill="${l===ui.sel?'#ffe36a':'#ff3b2f'}" fill-opacity=".28" stroke="${l===ui.sel?'#ffd21f':'#ff2a1a'}" stroke-width="3"/>`});$('hl').innerHTML=hl;
+  let hl='';[...new Set([ui.sel,...S.battles])].forEach(l=>{if(l<0||l==null||!LOC[l])return;hl+=`<path d="${LOC[l].d}" fill="${l===ui.sel?'#ffe36a':'#ff3b2f'}" fill-opacity=".28" stroke="${l===ui.sel?'#ffd21f':'#ff2a1a'}" stroke-width="3"/>`});if(ui.mv&&LOC[ui.mv.from]&&LOC[ui.mv.to]){const a=LOC[ui.mv.from],b=LOC[ui.mv.to],c=ui.mv.atk?'#ff3b2f':'#3fd16b';hl+=`<path d="${LOC[ui.mv.to].d}" fill="${c}" fill-opacity=".3" stroke="${c}" stroke-width="3"/><defs><marker id="mvh" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="${c}"/></marker></defs><line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="#000" stroke-opacity=".5" stroke-width="7" stroke-linecap="round"/><line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="${c}" stroke-width="4" stroke-dasharray="9 5" stroke-linecap="round" marker-end="url(#mvh)"/>`}
+  $('hl').innerHTML=hl;
   let h='';const npn={};
   LOC.forEach((L,l)=>{const here=at(l);const ic=S.ic[l]&&!L.sea;if(!here.length&&!ic)return;const PSc=window.PS||1,nN=here.length,prevN=(render.pn||{})[l]||0,drop=nN>prevN&&render.pn;npn[l]=nN;h+=`<g class="loc" data-l="${l}" transform="translate(${L.x} ${L.y}) scale(${PSc}) translate(${-L.x} ${-L.y})"><g class="${drop?'drop':''}">`+(here.length?`<ellipse cx="${L.x}" cy="${L.y+10}" rx="11" ry="3.2" fill="#1a1006" opacity=".35"/>`:'');
     if(ic)h+=piece('ic',P[S.own[l]].c,L.x+7,L.y-24,15);
@@ -298,9 +301,9 @@ function panel(){const p=S.cur,me=canAct();let m='',list='',bar=[];
   else if(S.phase==='combat'||S.phase==='noncombat'){const nc=S.phase==='noncombat';
     m=nc?'Noncombat: reposition, land aircraft (fighters on carriers), unload in friendly land. ':'Combat move: tap a source, choose units, tap an enemy/target. Load: tap your land, then a sea zone with your transport. Unload ⚓ cargo onto a coast = amphibious assault. ';
     if(ui.sel>=0){const g={};at(ui.sel).filter(u=>u.o===p).forEach(u=>{const key=u.k+(u.c!=null?'*':'');g[key]=g[key]||{n:0,mv:0};g[key].n++;g[key].mv=Math.max(g[key].mv,u.mv)});
-      m+=`<br><b>${LOC[ui.sel].n}</b> selected – now tap a destination.`;
+      m+=`<br><b>${LOC[ui.sel].n}</b> selected – now tap a destination${confirmOn()?' to preview the move':''}.`;
       list=Object.keys(g).map(key=>{if(ui.pick[key]==null)ui.pick[key]=g[key].n;const k=key.replace('*','');return row(k,P[p].c,`${U[k].n}${key.endsWith('*')?' (on transport)':''} · moves ${g[key].mv} · <b>${ui.pick[key]}/${g[key].n}</b>`,`<span class="st"><button data-p="${key}" data-d="-1">−</button> <button data-p="${key}" data-d="1" data-max="${g[key].n}">+</button></span>`)}).join('')||'<i>None of your units here.</i>'}
-    bar=[['Clear',()=>{ui.sel=-1;ui.pick={};render()}],[nc?'Done → Mobilize':'Done → Combat',()=>{ui.sel=-1;doAct({t:'next'})}]]}
+    bar=[...(me&&canUndo()?[['↶ Undo',()=>{ui.mv=null;ui.sel=-1;ui.pick={};doAct({t:'undo'})}]]:[]),['Clear',()=>{ui.sel=-1;ui.pick={};ui.mv=null;render()}],[nc?'Done → Mobilize':'Done → Combat',()=>{ui.sel=-1;ui.mv=null;doAct({t:'next'})}]]}
   else if(S.phase==='battle'){if(!S.battles.includes(ui.bat))ui.bat=S.battles[0];const l=ui.bat;
     if(l!=null){const A=S.u.filter(u=>u.l===l&&u.o===p&&fighting(u)),D=S.u.filter(u=>u.l===l&&enemyOf(u.o,p)&&fighting(u));const sum=us=>{const g={};us.forEach(u=>g[u.k]=(g[u.k]||0)+1);return Object.entries(g).map(([k,n])=>`${n} ${U[k].n}`).join(', ')||'none'};
       m=`⚔ Battle ${S.battles.indexOf(l)+1}/${S.battles.length}: <b>${LOC[l].n}</b> ${S.round[l]?`(round ${S.round[l]})`:''}<br>Attack: ${sum(A)}<br>Defend: ${sum(D)}`+(S.battles.length>1?`<br>Other battles: ${S.battles.filter(x=>x!==l).map(x=>LOC[x].n).join(', ')}`:'');
@@ -311,22 +314,34 @@ function panel(){const p=S.cur,me=canAct();let m='',list='',bar=[];
     bar=[['Auto-place & end turn',()=>{ui.sel=-1;doAct({t:'next'})}]]}
   if(ui.sel>=0&&!(S.phase==='mobilize'&&me)){const g={};at(ui.sel).forEach(u=>{const key=u.o+':'+u.k+(u.c!=null?'*':'');g[key]=(g[key]||0)+1});const ks=Object.keys(g);
     if(ks.length)m+=`<div style="margin-top:4px;padding:4px;background:#0003;border-radius:8px"><b>All units in ${LOC[ui.sel].n}:</b><div style="display:flex;flex-wrap:wrap;gap:4px">${ks.map(key=>{const[o,k]=key.split(':');return `<span style="display:inline-flex;align-items:center;gap:2px;background:${P[o].c}44;border-radius:6px;padding:1px 4px">${pieceSvg(k.replace('*',''),P[o].c).replace('width="40" height="40"','width="26" height="26"')}×${g[key]}${k.endsWith('*')?'⚓':''}</span>`}).join('')}</div></div>`}
+  if(ui.mv&&me&&(S.phase==='combat'||S.phase==='noncombat')){const v=ui.mv;m=`<b>${v.atk?'⚔ Attack':'➜ Move'}:</b> ${v.n} unit(s) ${LOC[v.from].n} → <b>${LOC[v.to].n}</b>. Adjust units with −/+ then confirm.`;bar=[['✕ Cancel',()=>{ui.mv=null;render()}],[v.atk?'⚔ Confirm attack':'✔ Confirm move',()=>confirmMove()]]}
+  else if(ui.mv&&!(S.phase==='combat'||S.phase==='noncombat'))ui.mv=null;
   $('msg').innerHTML=m;$('list').innerHTML=list;const B=$('bar');B.innerHTML='';bar.forEach(([t,f])=>{const b=document.createElement('button');b.textContent=t;b.disabled=!f;b.onclick=f;B.appendChild(b)});
   $('log').innerHTML=S.log.slice(0,5).join('<br>')}
 $('list').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
   if(b.dataset.b)doAct({t:'buy',k:b.dataset.b,d:+b.dataset.d});
-  if(b.dataset.p){const k=b.dataset.p;ui.pick[k]=Math.max(0,Math.min(+(b.dataset.max||99),(ui.pick[k]||0)+(+b.dataset.d)));render()}
+  if(b.dataset.p){const k=b.dataset.p;ui.pick[k]=Math.max(0,Math.min(+(b.dataset.max||99),(ui.pick[k]||0)+(+b.dataset.d)));if(ui.mv){const pk={};for(const q in ui.pick)if(ui.pick[q]>0)pk[q]=ui.pick[q];ui.mv.pick=pk;ui.mv.n=trialMove(ui.mv.from,ui.mv.to,pk)}render()}
   if(b.dataset.pl)doAct({t:'place',l:ui.sel,k:b.dataset.pl})});
 $('map').addEventListener('click',e=>{if(!(window.__touchTap&&Date.now()-window.__touchTap<700))mapTap(e.target)});
 function mapTap(t){const g=t&&t.closest&&t.closest('.loc');if(!g||!S)return;const l=+g.dataset.l;
   if(S.phase==='battle'&&S.battles.includes(l)){ui.bat=l;render();return}
   if(!canAct()){ui.sel=l===ui.sel?-1:l;render();return}
-  if(S.phase==='combat'||S.phase==='noncombat'){if(ui.sel>=0&&l!==ui.sel){const pick={};for(const k in ui.pick)if(ui.pick[k]>0)pick[k]=ui.pick[k];const from=ui.sel;
+  if(S.phase==='combat'||S.phase==='noncombat'){if(ui.mv){ui.mv=null;render();return}
+    if(ui.sel>=0&&l!==ui.sel&&confirmOn()){const pick={};for(const k in ui.pick)if(ui.pick[k]>0)pick[k]=ui.pick[k];const from=ui.sel;
+      const n=trialMove(from,l,pick);if(n>0){ui.mv={from,to:l,pick,n,atk:S.phase==='combat'&&(enemyOf(S.own[l],S.cur)||enemyUnits(l,S.cur).length>0)};render();return}
+      if(at(from).some(u=>u.o===S.cur)){flash(`Can't move those units to ${LOC[l].n}.`);return}}
+    if(ui.sel>=0&&l!==ui.sel){const pick={};for(const k in ui.pick)if(ui.pick[k]>0)pick[k]=ui.pick[k];const from=ui.sel;
       const before=JSON.stringify(S.u.map(u=>[u.l,u.c]));if(net.role==='client'){doAct({t:'move',from,to:l,pick});ui.sel=-1;ui.pick={};return}
       apply({t:'move',from,to:l,pick});if(JSON.stringify(S.u.map(u=>[u.l,u.c]))!==before){ui.sel=-1;ui.pick={};commit();return}
       flash(`Can't move those units to ${LOC[l].n}.`)}
     ui.sel=l===ui.sel?-1:l;ui.pick={};render();return}
   ui.sel=l===ui.sel?-1:l;render()}
+function confirmOn(){return localStorage.getItem('it-confirm')!=='0'}
+function trialMove(from,to,pick){const s0=S,lg=S.log;let n=0;try{S=JSON.parse(JSON.stringify(S));const b=JSON.stringify(S.u.map(u=>[u.l,u.c]));apply({t:'move',from,to,pick});const a=S.u.map(u=>[u.l,u.c]);n=S.u.filter((u,i)=>u.l===to&&s0.u[i]&&s0.u[i].l!==to).length||(JSON.stringify(a)!==b?1:0)}catch(e){n=0}S=s0;return n}
+function confirmMove(){const m=ui.mv;if(!m)return;ui.mv=null;const {from,to,pick}=m;
+  if(net.role==='client'){doAct({t:'move',from,to:to,pick});ui.sel=-1;ui.pick={};render();return}
+  const before=JSON.stringify(S.u.map(u=>[u.l,u.c]));apply({t:'move',from,to,pick});if(JSON.stringify(S.u.map(u=>[u.l,u.c]))!==before){ui.sel=-1;ui.pick={};commit();return}
+  flash(`Can't move those units to ${LOC[to].n}.`)}
 function flash(t){$('msg').innerHTML=`<b style="color:#ff8a7a">${t}</b>`;const pk=document.querySelector('#peek .tx');if(pk)pk.innerHTML=`<b style="color:#ff8a7a">${t}</b>`;setTimeout(()=>render(),1400)}
 function setZoom(z,cx,cy){const w=$('wrap');z=Math.max(fitZoom(),Math.min(8000,z));const r=w.getBoundingClientRect();cx=cx??r.width/2;cy=cy??r.height/2;
   const mx=(w.scrollLeft+cx)/zoom,my=(w.scrollTop+cy)/zoom;zoom=z;localStorage.setItem('it-zoom2',zoom);$('map').style.width=zoom+'px';w.scrollLeft=mx*zoom-cx;w.scrollTop=my*zoom-cy;window.onZoom&&onZoom()}
@@ -370,19 +385,21 @@ function endFx(){cancelAnimationFrame(fxRaf);clearTimeout(fxTimer);$('cut').styl
 $('skip').onclick=endFx;$('cut').addEventListener('click',e=>{if(e.target.id!=='skip')endFx()});
 // ===== networking: PeerJS, host authoritative =====
 function loadPeer(){return new Promise((res,rej)=>{if(window.Peer)return res();const s=document.createElement('script');s.src='https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';s.onload=res;s.onerror=rej;document.head.appendChild(s)})}
-function broadcast(){if(net.role!=='host')return;const lob={claims:net.claims,lobby:net.lobby,code:net.code,lv:getLvl()};net.conns.forEach(c=>{if(c.open)c.send(S?{state:S}:{lob})})}
+function broadcast(){if(net.role!=='host')return;if(S)S.away=awayList();const lob={claims:net.claims,lobby:net.lobby,code:net.code,lv:getLvl()};net.conns.forEach(c=>{if(c.open)c.send(S?{state:S}:{lob})})}
 function lobbyClaim(id,p,take){if(take){if(net.claims[p]==null)net.claims[p]=id}else if(net.claims[p]===id)net.claims[p]=null;lobbyUI();broadcast()}
 function myId(){let id=localStorage.getItem('it-id');if(!id){id=Math.random().toString(36).slice(2,10);localStorage.setItem('it-id',id)}return id}
 async function hostRoom(name,seats,pw,code){await loadPeer();net.role='host';net.me=myId();net.code=code||Math.random().toString(36).slice(2,7).toUpperCase();
   net.lobby=net.lobby&&net.lobby.length?net.lobby:[{name,id:net.me}];net.seats=seats;net.pw=pw;if(!net.claims)net.claims=[null,null,null,null,null];
   const open=()=>{net.peer=new Peer('itheater-'+net.code);net.peer.on('open',()=>lobbyUI());net.peer.on('error',e=>{$('lobby').textContent='Network: '+e.type;if(e.type==='unavailable-id')setTimeout(()=>{net.peer.destroy();open()},4000)});
-    net.peer.on('disconnected',()=>{try{net.peer.reconnect()}catch(e){}});
-    net.peer.on('connection',c=>{c.on('data',d=>{
+    net.peer.on('disconnected',()=>{netBanner('Host reconnecting to server…');let n=0;const tryR=()=>{if(!net.peer||net.peer.destroyed||!net.peer.disconnected){netBanner('');return}try{net.peer.reconnect()}catch(e){}setTimeout(tryR,Math.min(15000,1000*2**n++))};tryR()});
+    net.peer.on('open',()=>netBanner(''));
+    net.peer.on('connection',c=>{c.seen=Date.now();c.on('data',d=>{c.seen=Date.now();if(d.ping)return;
       if(d.take!=null||d.drop!=null){if(!S){lobbyClaim(c.pid,d.take??d.drop,d.take!=null)}return}
       if(d.join){c.pid=d.join;c.pname=d.name;if(!S&&!net.lobby.some(x=>x.id===d.join))net.lobby.push({name:d.name,id:d.join});net.conns=net.conns.filter(x=>x.pid!==d.join);net.conns.push(c);lobbyUI();
         if(S){claimSeat(c,d)}else broadcast();return}
       if(d.claim!=null&&S){const p=d.claim;if(S.ctrl[p]!=='ai'&&S.ctrl[p]!==net.me&&S.paused){const old=S.ctrl[p];net.conns.filter(x=>x.pid===old&&x!==c).forEach(x=>{try{x.close()}catch(e){}});S.ctrl[p]=c.pid;S.names[p]=c.pname||S.names[p];log(`${c.pname} took over ${P[p].n}.`);commit()}return}
-      if(d.act&&S&&S.ctrl[S.cur]===c.pid){apply(d.act);commit()}});c.on('close',()=>{net.conns=net.conns.filter(x=>x!==c)})})};open()}
+      if(d.act&&S&&S.ctrl[S.cur]===c.pid){apply(d.act);commit()}});c.on('close',()=>{net.conns=net.conns.filter(x=>x!==c);if(S)broadcast();render&&S&&render()})})};open();
+  if(!net.hb)net.hb=setInterval(()=>{if(net.role!=='host')return;net.conns.forEach(c=>{try{c.open&&c.send({ping:1})}catch(e){}});if(S){const a=JSON.stringify(awayList());if(a!==net.lastAway){net.lastAway=a;broadcast();render()}}},4000)}
 function lobbyUI(){if(S)return;const el=$('lobby');const L=net.role==='host'?{claims:net.claims||[],lobby:net.lobby||[],lv:getLvl()}:net.lob;
   if(!L){el.innerHTML=`Connected to room ${net.code}…`;return}const nameOf=id=>(L.lobby.find(x=>x.id===id)||{}).name||'?';
   el.innerHTML=`Room code <b style="font-size:24px;letter-spacing:2px">${net.code}</b><br><small>${location.href.split('?')[0]}?room=${net.code}</small><br>Players: ${L.lobby.map(x=>x.name).join(', ')}<div style="margin-top:6px">`+
@@ -394,11 +411,17 @@ $('lobby').addEventListener('click',e=>{const b=e.target.closest('[data-claim]')
   if(net.role==='host')lobbyClaim(net.me,p,take);else if(net.host&&net.host.open)net.host.send(take?{take:p}:{drop:p})});
 document.addEventListener('change',e=>{if(e.target.dataset&&e.target.dataset.pc!=null&&net.role==='host'&&!S){lobbyUI();broadcast()}});
 async function joinRoom(code,name){await loadPeer();net.role='client';net.code=code.toUpperCase();net.me=myId();
-  const connect=()=>{const c=net.peer.connect('itheater-'+net.code,{reliable:true});net.host=c;
-    c.on('open',()=>{c.send({join:net.me,name});lobbyUI()});
-    c.on('data',d=>{if(d.state){S=d.state;$('menu').style.display='none';render()}else if(d.lob){net.lob=d.lob;lobbyUI()}if(d.pick){net.pick=d.pick;pauseUI()}});
-    c.on('close',()=>{$('msg').textContent='Connection lost – reconnecting…';setTimeout(connect,2500)})};
-  net.peer=new Peer();net.peer.on('open',connect);net.peer.on('error',e=>{$('lobby').textContent='Network: '+e.type+' – retrying';if(e.type==='peer-unavailable')setTimeout(connect,3000)})}
+  net.retry=0;net.rt=0;
+  const later=()=>{if(net.rt)return;const d=Math.min(8000,1000*2**net.retry++);net.lastTry=Date.now()+d;netBanner(`📡 Reconnecting… (retry in ${Math.round(d/1000)}s)`);net.rt=setTimeout(()=>{net.rt=0;if(net.peer.destroyed){net.peer=mkPeer();return}if(net.peer.disconnected){try{net.peer.reconnect()}catch(e){}return}connect()},d)};
+  const connect=()=>{try{if(net.host&&net.host.open)net.host.close()}catch(e){}const c=net.peer.connect('itheater-'+net.code,{reliable:true});net.host=c;
+    c.on('open',()=>{net.retry=0;net.seen=Date.now();netBanner('');c.send({join:net.me,name});lobbyUI()});
+    c.on('data',d=>{net.seen=Date.now();if(d.ping)return;if(d.state){S=d.state;$('menu').style.display='none';render()}else if(d.lob){net.lob=d.lob;lobbyUI()}if(d.pick){net.pick=d.pick;pauseUI()}});
+    c.on('close',()=>{if(net.host===c){netBanner('📡 Connection lost – reconnecting…');later()}});c.on('error',()=>{if(net.host===c)later()})};
+  const mkPeer=()=>{const pr=new Peer();pr.on('open',connect);pr.on('disconnected',later);pr.on('error',e=>{if(!S)$('lobby').textContent='Network: '+e.type+' – retrying';later()});return pr};
+  net.connect=connect;net.later=later;net.peer=mkPeer();
+  if(!net.wd)net.wd=setInterval(()=>{if(net.role!=='client')return;const h=net.host;if(h&&h.open){try{h.send({ping:1})}catch(e){}if(Date.now()-(net.seen||0)>12000){try{h.close()}catch(e){}later()}}else if(!net.rt&&Date.now()-(net.lastTry||0)>10000)later()},4000)}
+function netBanner(t){const b=$('netban');if(!b)return;b.textContent=t;b.style.display=t?'block':'none'}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState!=='visible'||net.role!=='client'||!net.connect)return;if(!(net.host&&net.host.open)){clearTimeout(net.rt);net.rt=0;net.retry=0;if(net.peer&&net.peer.disconnected){try{net.peer.reconnect()}catch(e){}}else net.connect()}});
 // ===== menu =====
 $('pw').innerHTML=P.map((x,i)=>`<option value="${i}">${x.n} (${TN[TEAM[i]]})</option>`).join('');
 const qp=new URLSearchParams(location.search).get('room');if(qp)$('code').value=qp;
@@ -424,7 +447,8 @@ function guardCapitals(p){const cap=P[p].cap;if(S.own[cap]!==p)return;const def=
   ADJ[cap].forEach(n=>{if(LOC[n].sea)return;S.u.filter(u=>u.l===n&&u.o===p&&U[u.k].t==='L'&&!u.cm&&u.c==null&&u.mv>0&&u.k!=='aa').forEach(u=>{const r=canMove(u,cap);if(r)doMove(u,cap,r)})})}
 
 // ===== pause / resume / export =====
-function connectedIds(){return[net.me,...net.conns.filter(c=>c.open).map(c=>c.pid)]}
+function connectedIds(){const now=Date.now();return[net.me,...net.conns.filter(c=>c.open&&(!c.seen||now-c.seen<15000)).map(c=>c.pid)]}
+function awayList(){if(!S||net.role!=='host')return null;const ci=connectedIds();return S.ctrl.map(id=>id!=='ai'&&id!=='local'&&!ci.includes(id))}
 function claimSeat(c,d){let p=S.ctrl.indexOf(d.join);
   if(p<0){p=S.names.findIndex((n,i)=>n===d.name&&S.ctrl[i]!=='ai'&&S.ctrl[i]!==net.me);if(p>=0){const old=S.ctrl[p];net.conns.filter(x=>x.pid===old&&x!==c).forEach(x=>{try{x.close()}catch(e){}});net.conns=net.conns.filter(x=>x.pid!==old||x===c);S.ctrl=S.ctrl.map(x=>x===old?d.join:x);S.ctrl[p]=d.join;log(`${d.name} reclaimed ${P[p].n}.`)}}
   if(p<0){const hum=S.ctrl.map((x,i)=>i).filter(i=>S.ctrl[i]!=='ai'&&S.ctrl[i]!==net.me);let free=hum.filter(i=>!connectedIds().includes(S.ctrl[i]));if(!free.length)free=hum;c.send({state:S,pick:free});return}
