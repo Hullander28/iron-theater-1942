@@ -34,7 +34,7 @@ const SFX=(()=>{let ctx=null,master=null,musicGain=null,noise=null,music=null;
     step();music=setInterval(step,8000)}
   return{st,init,apply,play,startMusic}})();
 window.SFX=SFX;
-['pointerdown','touchstart','keydown'].forEach(ev=>document.addEventListener(ev,()=>{SFX.init();SFX.startMusic()},{once:true,passive:true}));
+['pointerdown','touchstart','touchend','click','keydown'].forEach(ev=>document.addEventListener(ev,()=>{const c=SFX.init();if(c&&c.state!=='running')c.resume();SFX.startMusic()},{passive:true}));
 function soundUI(){const el=$('sndpop');el.style.display=el.style.display==='flex'?'none':'flex';el.innerHTML=`<b>Sound</b><label>Volume <input type="range" id="vol" min="0" max="1" step="0.05" value="${SFX.st.vol}" style="width:150px"></label>
   <label><input type="checkbox" id="mute" ${SFX.st.mute?'checked':''} style="width:auto"> Mute all</label><label><input type="checkbox" id="mus" ${SFX.st.music?'checked':''} style="width:auto"> Ambient music</label><button class="sm" id="sndx">Close</button>`;
   $('vol').oninput=e=>{SFX.st.vol=+e.target.value;SFX.apply();sndBtn()};$('mute').onchange=e=>{SFX.st.mute=e.target.checked;SFX.apply();sndBtn()};$('mus').onchange=e=>{SFX.st.music=e.target.checked;SFX.init();SFX.startMusic();SFX.apply()};$('sndx').onclick=()=>el.style.display='none'}

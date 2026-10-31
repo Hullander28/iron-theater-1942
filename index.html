@@ -1,5 +1,5 @@
 <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>Iron Theater 1942</title><link rel="manifest" href="manifest.json"><meta name="theme-color" content="#14202c"><link rel="apple-touch-icon" href="icon-192.png">
+<title>Iron Theater 1942</title><link rel="manifest" href="manifest.json"><meta name="theme-color" content="#14202c"><link rel="apple-touch-icon" href="icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Iron Theater">
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;height:100%;background:#14202c;color:#f1e8d4;font-family:system-ui,sans-serif;user-select:none;overflow:hidden}
 #app{display:flex;flex-direction:column;height:100%}
@@ -71,6 +71,9 @@ html,body{touch-action:manipulation}#wrap{touch-action:none;overscroll-behavior:
  #panel.peek #peek{flex:1;min-width:0;margin:0;border:0;background:none;padding:0}
  #panel.peek #msg,#panel.peek #list,#panel.peek #log{display:none}
  #panel.peek #bar{flex:none;margin:0;flex-wrap:nowrap;max-width:55%}#panel.peek #bar button{padding:8px 10px;font-size:13px;min-width:0}
+ #top{width:calc(66px + env(safe-area-inset-right,0px));padding-right:calc(4px + env(safe-area-inset-right,0px))}
+ #wrap{left:env(safe-area-inset-left,0px);right:calc(66px + env(safe-area-inset-right,0px))}
+ #panel{right:calc(66px + env(safe-area-inset-right,0px))}#panel.peek{left:env(safe-area-inset-left,0px);right:calc(66px + env(safe-area-inset-right,0px));padding-bottom:env(safe-area-inset-bottom,0px)}
  #tut{left:8px;right:auto;top:8px;width:min(46vw,420px)}#sndpop{right:72px;top:8px}
 }
 </style></head><body><div id="app">
