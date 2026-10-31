@@ -76,6 +76,8 @@ html,body{touch-action:manipulation}#wrap{touch-action:none;overscroll-behavior:
  #panel{right:calc(66px + env(safe-area-inset-right,0px))}#panel.peek{left:env(safe-area-inset-left,0px);right:calc(66px + env(safe-area-inset-right,0px));padding-bottom:env(safe-area-inset-bottom,0px)}
  #tut{left:8px;right:auto;top:8px;width:min(46vw,420px)}#sndpop{right:72px;top:8px}
 }
+.fx-light{display:none}html.lowfx .fx-light{display:inline}html.lowfx .fx-heavy{display:none}html.lowfx #dyn image{filter:none}html.lowfx .drop{animation:none}html.lowfx *:not(.tut-hl){box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}html.lowfx .tutpulse{animation:none}
+#wrap{contain:layout paint}
 </style></head><body><div id="app">
 <div id="top"><span id="who">Iron Theater 1942</span><button class="sm" id="zo" title="Zoom out">−</button><button class="sm" id="zi" title="Zoom in">+</button><button class="sm" id="fit" title="Fit whole map">⤢</button><button class="sm" id="snd" title="Sound">🔊</button><button class="sm" id="fxt">🎬</button><button class="sm" id="pz" style="display:none">⏸</button><button class="sm" id="mnu">☰</button><button class="sm" id="drw" title="Orders drawer">📋</button><button id="go" class="sm">Done</button></div>
 <div id="wrap"><svg id="map" viewBox="0 0 2000 887"></svg></div>
