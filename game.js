@@ -397,7 +397,7 @@ async function hostRoom(name,seats,pw,code){await loadPeer();net.role='host';net
       if(d.take!=null||d.drop!=null){if(!S){lobbyClaim(c.pid,d.take??d.drop,d.take!=null)}return}
       if(d.join){c.pid=d.join;c.pname=d.name;if(!S&&!net.lobby.some(x=>x.id===d.join))net.lobby.push({name:d.name,id:d.join});net.conns=net.conns.filter(x=>x.pid!==d.join);net.conns.push(c);lobbyUI();
         if(S){claimSeat(c,d)}else broadcast();return}
-      if(d.claim!=null&&S){const p=d.claim;if(S.ctrl[p]!=='ai'&&S.ctrl[p]!==net.me&&S.paused){const old=S.ctrl[p];net.conns.filter(x=>x.pid===old&&x!==c).forEach(x=>{try{x.close()}catch(e){}});S.ctrl[p]=c.pid;S.names[p]=c.pname||S.names[p];log(`${c.pname} took over ${P[p].n}.`);commit()}return}
+      if(d.claim!=null&&S){const p=d.claim;if(S.ctrl[p]!=='ai'&&S.ctrl[p]!==net.me&&!S.ctrl.includes(c.pid)&&(S.paused||!connectedIds().includes(S.ctrl[p]))){const old=S.ctrl[p];net.conns.filter(x=>x.pid===old&&x!==c).forEach(x=>{try{x.close()}catch(e){}});S.ctrl[p]=c.pid;S.names[p]=c.pname||S.names[p];log(`${c.pname} took over ${P[p].n}.`);commit()}else c.send({state:S,pick:heldSeats()});return}
       if(d.act&&S&&S.ctrl[S.cur]===c.pid){apply(d.act);commit()}});c.on('close',()=>{net.conns=net.conns.filter(x=>x!==c);if(S)broadcast();render&&S&&render()})})};open();
   if(!net.hb)net.hb=setInterval(()=>{if(net.role!=='host')return;net.conns.forEach(c=>{try{c.open&&c.send({ping:1})}catch(e){}});if(S){const a=JSON.stringify(awayList());if(a!==net.lastAway){net.lastAway=a;broadcast();render()}}},4000)}
 function lobbyUI(){if(S)return;const el=$('lobby');const L=net.role==='host'?{claims:net.claims||[],lobby:net.lobby||[],lv:getLvl()}:net.lob;
@@ -410,12 +410,12 @@ function lobbyUI(){if(S)return;const el=$('lobby');const L=net.role==='host'?{cl
 $('lobby').addEventListener('click',e=>{const b=e.target.closest('[data-claim]');if(!b)return;const p=+b.dataset.claim,take=b.dataset.take==='1';
   if(net.role==='host')lobbyClaim(net.me,p,take);else if(net.host&&net.host.open)net.host.send(take?{take:p}:{drop:p})});
 document.addEventListener('change',e=>{if(e.target.dataset&&e.target.dataset.pc!=null&&net.role==='host'&&!S){lobbyUI();broadcast()}});
-async function joinRoom(code,name){await loadPeer();net.role='client';net.code=code.toUpperCase();net.me=myId();
+async function joinRoom(code,name){if(!code)return alert('Enter a room code');await loadPeer();net.role='client';net.code=code.toUpperCase();net.me=myId();localStorage.setItem('it-room',JSON.stringify({code:net.code,name,ts:Date.now()}));
   net.retry=0;net.rt=0;
   const later=()=>{if(net.rt)return;const d=Math.min(8000,1000*2**net.retry++);net.lastTry=Date.now()+d;netBanner(`📡 Reconnecting… (retry in ${Math.round(d/1000)}s)`);net.rt=setTimeout(()=>{net.rt=0;if(net.peer.destroyed){net.peer=mkPeer();return}if(net.peer.disconnected){try{net.peer.reconnect()}catch(e){}return}connect()},d)};
   const connect=()=>{try{if(net.host&&net.host.open)net.host.close()}catch(e){}const c=net.peer.connect('itheater-'+net.code,{reliable:true});net.host=c;
     c.on('open',()=>{net.retry=0;net.seen=Date.now();netBanner('');c.send({join:net.me,name});lobbyUI()});
-    c.on('data',d=>{net.seen=Date.now();if(d.ping)return;if(d.state){S=d.state;$('menu').style.display='none';render()}else if(d.lob){net.lob=d.lob;lobbyUI()}if(d.pick){net.pick=d.pick;pauseUI()}});
+    c.on('data',d=>{net.seen=Date.now();if(d.ping)return;if(d.state){S=d.state;const p=S.ctrl.indexOf(net.me);try{const R=JSON.parse(localStorage.getItem('it-room')||'{}');R.ts=Date.now();if(p>=0)R.team=p;localStorage.setItem('it-room',JSON.stringify(R))}catch(e){}$('menu').style.display='none';render()}else if(d.lob){net.lob=d.lob;lobbyUI()}if(d.pick){net.pick=d.pick;pauseUI()}});
     c.on('close',()=>{if(net.host===c){netBanner('📡 Connection lost – reconnecting…');later()}});c.on('error',()=>{if(net.host===c)later()})};
   const mkPeer=()=>{const pr=new Peer();pr.on('open',connect);pr.on('disconnected',later);pr.on('error',e=>{if(!S)$('lobby').textContent='Network: '+e.type+' – retrying';later()});return pr};
   net.connect=connect;net.later=later;net.peer=mkPeer();
@@ -430,6 +430,8 @@ $('new').onclick=()=>{startLocal(pcs().map(s=>s.value==='h'?'local':'ai'))};
 $('cont').onclick=()=>{const d=JSON.parse(localStorage.getItem('it-save')||'null');if(!d)return alert('No saved game');S=d.S;$('menu').style.display='none';
   if(d.online){hostRoom('Host',5,0,d.code).then(()=>{net.me=d.me;render()})}render.fk=S.fx&&S.fx.k;render();schedule()};
 $('host').onclick=()=>hostRoom($('nm').value.trim()||'Host',5,0);
+function savedRoom(){try{const R=JSON.parse(localStorage.getItem('it-room')||'null');return R&&Date.now()-R.ts<3*864e5?R:null}catch(e){return null}}
+{const R=savedRoom(),b=$('rejoin');if(R&&b&&(!qp||qp.toUpperCase()===R.code)){if(R.name&&!$('nm').value)$('nm').value=R.name;b.style.display='block';b.textContent=`Rejoin game ${R.code}`+(R.team!=null?` as ${P[R.team].n}`:'');b.onclick=()=>{b.style.display='none';joinRoom(R.code,R.name||'Player')};if(localStorage.getItem('it-autorejoin')!=='0'&&R.team!=null&&Date.now()-R.ts<6*36e5)setTimeout(()=>{if(net.role!=='client'&&net.role!=='host'&&!S)b.click()},300)}}
 $('join').onclick=()=>joinRoom($('code').value.trim(),$('nm').value.trim()||'Player');
 $('start').onclick=()=>{const ctrl=P.map((_,i)=>net.claims[i]||'ai');const names=P.map((x,i)=>net.claims[i]?(net.lobby.find(l=>l.id===net.claims[i])||{}).name||x.n:x.n);newGame(ctrl,{lvl:getLvl(),bonus:$('bonus').checked,names,limit:+$('limit').value});$('menu').style.display='none';commit()};
 if('serviceWorker'in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js');
@@ -449,9 +451,10 @@ function guardCapitals(p){const cap=P[p].cap;if(S.own[cap]!==p)return;const def=
 // ===== pause / resume / export =====
 function connectedIds(){const now=Date.now();return[net.me,...net.conns.filter(c=>c.open&&(!c.seen||now-c.seen<15000)).map(c=>c.pid)]}
 function awayList(){if(!S||net.role!=='host')return null;const ci=connectedIds();return S.ctrl.map(id=>id!=='ai'&&id!=='local'&&!ci.includes(id))}
+function heldSeats(){const ci=connectedIds();const hum=S.ctrl.map((x,i)=>i).filter(i=>S.ctrl[i]!=='ai'&&S.ctrl[i]!==net.me);const f=hum.filter(i=>!ci.includes(S.ctrl[i]));return f.length?f:hum}
 function claimSeat(c,d){let p=S.ctrl.indexOf(d.join);
   if(p<0){p=S.names.findIndex((n,i)=>n===d.name&&S.ctrl[i]!=='ai'&&S.ctrl[i]!==net.me);if(p>=0){const old=S.ctrl[p];net.conns.filter(x=>x.pid===old&&x!==c).forEach(x=>{try{x.close()}catch(e){}});net.conns=net.conns.filter(x=>x.pid!==old||x===c);S.ctrl=S.ctrl.map(x=>x===old?d.join:x);S.ctrl[p]=d.join;log(`${d.name} reclaimed ${P[p].n}.`)}}
-  if(p<0){const hum=S.ctrl.map((x,i)=>i).filter(i=>S.ctrl[i]!=='ai'&&S.ctrl[i]!==net.me);let free=hum.filter(i=>!connectedIds().includes(S.ctrl[i]));if(!free.length)free=hum;c.send({state:S,pick:free});return}
+  if(p<0){c.send({state:S,pick:heldSeats()});return}log(`${d.name||S.names[p]} rejoined as ${P[p].n}.`);
   commit()}
 function pauseUI(){const el=$('pause');if(!S||!S.paused){el.style.display='none';$('pz').style.display=net.role==='host'?'inline-block':'none';return}
   el.style.display='flex';$('pz').style.display='none';const ids=net.role==='host'?connectedIds():[];
