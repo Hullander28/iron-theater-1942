@@ -1,6 +1,6 @@
 // ===== Accounts & stats (Supabase) — guest play always works =====
 (function(){
-const SB_URL='https://iwyckyiuoedgbnxknzjk.supabase.co',SB_KEY='sb_publishable_ltaNA7nnVozoSCOcZIjg',SB_JS='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js';
+const SB_URL='https://iwyckyiuoedgbnxknzjk.supabase.co',SB_KEY='sb_publishable_f8G6BI43nblKDUOrMIIFGQ_dqG_Upl3',SB_JS='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js';
 const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const A={sb:null,user:null,name:null,ready:null,dbMissing:false};window.__A=A;
