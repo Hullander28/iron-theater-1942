@@ -33,7 +33,7 @@ function snd(type){S.snd={k:Math.random(),type}}
 function income(p){if(S.own[P[p].cap]!==p)return 0;let s=0;LOC.forEach((L,i)=>{if(!L.sea&&S.own[i]===p)s+=L.v});return s}
 function addU(k,o,l){const u={i:S.nid++,k,o,l,mv:U[k].m,h:0,c:null,cm:0,am:-1,ul:0};S.u.push(u);return u}
 // ===== setup =====
-function newGame(ctrl,opt={}){S={limit:opt.limit||0,lvl:opt.lvl||[1,1,1,1,1],bonus:!!opt.bonus,names:opt.names||P.map(x=>x.n),paused:false,turn:1,cur:0,phase:'purchase',own:LOC.map(L=>L.own),ic:LOC.map(L=>L.ic),u:[],nid:1,ipc:[0,0,0,0,0],bought:{},placed:{},battles:[],captured:[],seaFought:[],log:[],fx:null,winner:-1,ctrl};
+function newGame(ctrl,opt={}){S={limit:opt.limit||0,lvl:opt.lvl||[1,1,1,1,1],bonus:!!opt.bonus,names:opt.names||P.map(x=>x.n),paused:false,turn:1,cur:0,phase:'purchase',own:LOC.map(L=>L.own),ic:LOC.map(L=>L.ic),u:[],nid:1,ipc:[0,0,0,0,0],bought:{},placed:{},battles:[],captured:[],seaFought:[],log:[],fx:null,winner:-1,gid:Date.now().toString(36)+Math.random().toString(36).slice(2,6),ctrl};
   for(const p in START)START[p].split(';').forEach(seg=>{const[l,list]=seg.split(':');list.split(',').forEach(it=>{const[k,n]=it.split('*');for(let i=0;i<(+n||1);i++)addU(k,+p,+l)})});
   // fighters starting on carriers stay there
   for(let p=0;p<5;p++)S.ipc[p]=income(p);log('World War begins. Soviet Union moves first.');startTurn()}
@@ -387,7 +387,7 @@ $('skip').onclick=endFx;$('cut').addEventListener('click',e=>{if(e.target.id!=='
 function loadPeer(){return new Promise((res,rej)=>{if(window.Peer)return res();const s=document.createElement('script');s.src='https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';s.onload=res;s.onerror=rej;document.head.appendChild(s)})}
 function broadcast(){if(net.role!=='host')return;if(S)S.away=awayList();const lob={claims:net.claims,lobby:net.lobby,code:net.code,lv:getLvl()};net.conns.forEach(c=>{if(c.open)c.send(S?{state:S}:{lob})})}
 function lobbyClaim(id,p,take){if(take){if(net.claims[p]==null)net.claims[p]=id}else if(net.claims[p]===id)net.claims[p]=null;lobbyUI();broadcast()}
-function myId(){let id=localStorage.getItem('it-id');if(!id){id=Math.random().toString(36).slice(2,10);localStorage.setItem('it-id',id)}return id}
+function myId(){const ua=localStorage.getItem('it-uid');if(ua)return ua;let id=localStorage.getItem('it-id');if(!id){id=Math.random().toString(36).slice(2,10);localStorage.setItem('it-id',id)}return id}
 async function hostRoom(name,seats,pw,code){await loadPeer();net.role='host';net.me=myId();net.code=code||Math.random().toString(36).slice(2,7).toUpperCase();
   net.lobby=net.lobby&&net.lobby.length?net.lobby:[{name,id:net.me}];net.seats=seats;net.pw=pw;if(!net.claims)net.claims=[null,null,null,null,null];
   const open=()=>{net.peer=new Peer('itheater-'+net.code);net.peer.on('open',()=>lobbyUI());net.peer.on('error',e=>{$('lobby').textContent='Network: '+e.type;if(e.type==='unavailable-id')setTimeout(()=>{net.peer.destroy();open()},4000)});
