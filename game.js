@@ -427,12 +427,14 @@ $('pw').innerHTML=P.map((x,i)=>`<option value="${i}">${x.n} (${TN[TEAM[i]]})</op
 const qp=new URLSearchParams(location.search).get('room');if(qp)$('code').value=qp;
 const startLocal=ctrl=>{net.role='local';newGame(ctrl,{lvl:getLvl(),bonus:$('bonus').checked,limit:+$('limit').value});$('menu').style.display='none';commit()};
 $('new').onclick=()=>{startLocal(pcs().map(s=>s.value==='h'?'local':'ai'))};
-$('cont').onclick=()=>{const d=JSON.parse(localStorage.getItem('it-save')||'null');if(!d)return alert('No saved game');S=d.S;$('menu').style.display='none';
-  if(d.online){hostRoom('Host',5,0,d.code).then(()=>{net.me=d.me;render()})}render.fk=S.fx&&S.fx.k;render();schedule()};
-$('host').onclick=()=>hostRoom($('nm').value.trim()||'Host',5,0);
+function readSave(k){try{const d=JSON.parse(localStorage.getItem(k)||'null');return d&&d.S?d:null}catch(e){return null}}
+function netFail(e){const el=$('lobby');if(el)el.textContent='Could not reach the room server. Check your connection and try again.';console.warn('network',e)}
+$('cont').onclick=()=>{const d=readSave('it-save');if(!d)return alert('No saved game');S=d.S;$('menu').style.display='none';
+  if(d.online){hostRoom('Host',5,0,d.code).then(()=>{net.me=d.me;render()}).catch(netFail)}render.fk=S.fx&&S.fx.k;render();schedule()};
+$('host').onclick=()=>hostRoom($('nm').value.trim()||'Host',5,0).catch(netFail);
 function savedRoom(){try{const R=JSON.parse(localStorage.getItem('it-room')||'null');return R&&Date.now()-R.ts<3*864e5?R:null}catch(e){return null}}
-{const R=savedRoom(),b=$('rejoin');if(R&&b&&(!qp||qp.toUpperCase()===R.code)){if(R.name&&!$('nm').value)$('nm').value=R.name;b.style.display='block';b.textContent=`Rejoin game ${R.code}`+(R.team!=null?` as ${P[R.team].n}`:'');b.onclick=()=>{b.style.display='none';joinRoom(R.code,R.name||'Player')};if(localStorage.getItem('it-autorejoin')!=='0'&&R.team!=null&&Date.now()-R.ts<6*36e5)setTimeout(()=>{if(net.role!=='client'&&net.role!=='host'&&!S)b.click()},300)}}
-$('join').onclick=()=>joinRoom($('code').value.trim(),$('nm').value.trim()||'Player');
+{const R=savedRoom(),b=$('rejoin');if(R&&b&&(!qp||qp.toUpperCase()===R.code)){if(R.name&&!$('nm').value)$('nm').value=R.name;b.style.display='block';b.textContent=`Rejoin game ${R.code}`+(R.team!=null?` as ${P[R.team].n}`:'');b.onclick=()=>{b.style.display='none';joinRoom(R.code,R.name||'Player').catch(netFail)};if(localStorage.getItem('it-autorejoin')!=='0'&&R.team!=null&&Date.now()-R.ts<6*36e5)setTimeout(()=>{if(net.role!=='client'&&net.role!=='host'&&!S)b.click()},300)}}
+$('join').onclick=()=>joinRoom($('code').value.trim(),$('nm').value.trim()||'Player').catch(netFail);
 $('start').onclick=()=>{const ctrl=P.map((_,i)=>net.claims[i]||'ai');const names=P.map((x,i)=>net.claims[i]?(net.lobby.find(l=>l.id===net.claims[i])||{}).name||x.n:x.n);newGame(ctrl,{lvl:getLvl(),bonus:$('bonus').checked,names,limit:+$('limit').value});$('menu').style.display='none';commit()};
 if('serviceWorker'in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js');
 window.__G={render:()=>render(),centerOn,setZoom,fitZoom,get zoomV(){return zoom},get zoom(){return zoom},get S(){return S},set S(v){S=v},apply,aiStep,nextPhase,newGame,canMove,net,ui,LOC,ADJ,U,cargoOf,get fxOn(){return fxOn},endFx,income,vcCount};
@@ -464,9 +466,9 @@ function pauseUI(){const el=$('pause');if(!S||!S.paused){el.style.display='none'
 $('seatpick').addEventListener('click',e=>{const b=e.target.closest('[data-seat]');if(b&&net.host){net.host.send({claim:+b.dataset.seat});net.pick=null;$('seatpick').innerHTML='Requested…'}});
 $('pz').onclick=()=>{if(net.role!=='host'||!S)return;S.paused=true;log('Game paused by host.');save();broadcast();render()};
 $('unpause').onclick=()=>{S.paused=false;log('Game resumed.');commit()};
-$('resume').onclick=()=>{const d=JSON.parse(localStorage.getItem('it-online')||'null');if(!d)return alert('No saved online game on this device. Import one first.');
+$('resume').onclick=()=>{const d=readSave('it-online');if(!d)return alert('No saved online game on this device. Import one first.');
   S=d.S;S.paused=true;net.lobby=d.lobby||[];net.me=myId();const old=d.me;S.ctrl=S.ctrl.map(x=>x===old?net.me:x);$('menu').style.display='none';
-  hostRoom(S.names[S.ctrl.indexOf(net.me)]||'Host',5,0,d.code).then(()=>{render()});render.fk=S.fx&&S.fx.k;render()};
+  hostRoom(S.names[S.ctrl.indexOf(net.me)]||'Host',5,0,d.code).then(()=>{render()}).catch(netFail);render.fk=S.fx&&S.fx.k;render()};
 async function packSave(){const raw=localStorage.getItem('it-online')||localStorage.getItem('it-save');if(!raw)return null;
   const cs=new Blob([raw]).stream().pipeThrough(new CompressionStream('gzip'));const buf=new Uint8Array(await new Response(cs).arrayBuffer());let b='';buf.forEach(x=>b+=String.fromCharCode(x));return 'IT1:'+btoa(b)}
 async function unpackSave(code){code=code.trim();if(code.startsWith('{'))return code;if(!code.startsWith('IT1:'))throw 'bad code';const bin=atob(code.slice(4)),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);
